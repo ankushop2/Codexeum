@@ -79,14 +79,15 @@ Supply `--pet /path/to/pet-folder` or `--pet /path/to/image.png` to use your pet
 
 To connect an existing browser player, click **CONNECT MY CODEX** in the room and use the `P-` code in place of `ABC123`. Pairing codes expire after five minutes and can be redeemed once. They grant access to that player seat, so keep them private. Room codes join a new seat. Browser and terminal share answer locking; the first accepted answer wins.
 
-The skill source is `skills/codexeum`. Install it for this checkout:
+Initialize the terminal arena and install the skill for this checkout (requires [uv](https://docs.astral.sh/uv/getting-started/installation/)):
 
 ```sh
-mkdir -p ~/.agents/skills
-ln -s "$PWD/skills/codexeum" ~/.agents/skills/codexeum
+python3 scripts/init_codexeum.py
 ```
 
-In the desktop app, enabled skills appear in the slash menu: select **codexeum**, then supply `new`, a room code, or a pairing code. `$codexeum new` is the explicit skill form supported across Codex surfaces. Stock Codex CLI does not document arbitrary bare `/codexeum` registration from a skill; use `$codexeum new` or `/skills` there. This project does not modify the Codex executable.
+This installs the terminal dependencies and links `skills/codexeum` into `~/.agents/skills`. It is safe to run again; an existing different skill at that path is left untouched. Keep this checkout in place, since the skill links to it. Install and sign in to the Codex CLI separately.
+
+In the desktop app, enabled skills appear in the slash menu: select **codexeum**, then supply `init` to initialize dependencies, or `new`, a room code, or a pairing code to play. The skill must already be installed to invoke it; use the setup command above for first-time installation. `$codexeum new` is the explicit skill form supported across Codex surfaces. Stock Codex CLI does not document arbitrary bare `/codexeum` registration from a skill; use `$codexeum new` or `/skills` there. This project does not modify the Codex executable.
 
 The skill launches a separate visible terminal via `scripts/launch_codexeum.py`. You can also launch it directly:
 

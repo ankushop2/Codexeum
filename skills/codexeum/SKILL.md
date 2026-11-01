@@ -1,9 +1,11 @@
 ---
 name: codexeum
-description: Launch the Codexeum terminal pet quiz arena to create a room, join a room, or pair an existing website player with local Codex.
+description: Initialize Codexeum or launch its terminal pet quiz arena to create a room, join a room, or pair an existing website player with local Codex.
 ---
 
-Launch the interactive arena requested by the user. `new` creates a room; a six-character room code joins as player two; a `P-` pairing code connects the user's existing website player seat. Default to `new` when no argument is supplied.
+For `init`, resolve this skill’s real directory (follow its symlink), then run `python3 <repo>/scripts/init_codexeum.py` with the repository root two directories above the skill. Report the result and do not launch the arena.
+
+Otherwise, launch the interactive arena requested by the user. `new` creates a room; a six-character room code joins as player two; a `P-` pairing code connects the user's existing website player seat. Default to `new` when no argument is supplied.
 
 Resolve this skill's real directory (follow its symlink). The repository root is two directories above it. Use the root's `scripts/launch_codexeum.py` with the target as a separate argument. Pass the user's arena URL with `--url` when supplied, otherwise use `CODEXEUM_URL`; the local-development default is http://localhost:5001. Never guess a production hostname. The arena form also permits entering the URL before connecting.
 
