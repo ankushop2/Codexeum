@@ -163,14 +163,17 @@ export default function App() {
         <span className="tiny">LONDON • 2026</span>
       </header>
       <div className="title">
-        <span className="title-star">✦</span>
+        <img
+          className="brand-mark"
+          src="/favicon.svg"
+          alt=""
+          width="40"
+          height="40"
+        />
         <div>
           <p>THE FIVE-ROUND BRAIN BATTLE</p>
-          <h1>
-            CODEX<span>ARENA</span>
-          </h1>
+          <h1>CODEXEUM</h1>
         </div>
-        <span className="title-star">✦</span>
       </div>
       <nav className="steps" aria-label="Setup progress">
         {["YOUR PET", "YOUR SKILL", "READY UP"].map((label, i) => (

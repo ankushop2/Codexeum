@@ -847,3 +847,26 @@ footer {
   font-size: 12px;
   font-weight: 700;
 }
+
+.brand-mark {
+  width: 44px;
+  height: 44px;
+  image-rendering: pixelated;
+  flex-shrink: 0;
+}
+.title h1 {
+  font-size: clamp(20px, 5vw, 34px);
+  letter-spacing: -1px;
+}
+@media (max-width: 480px) {
+  .brand-mark {
+    width: 32px;
+    height: 32px;
+  }
+  .title {
+    gap: 12px;
+  }
+  .title p {
+    font-size: 6px;
+  }
+}

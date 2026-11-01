@@ -1,8 +1,10 @@
-# Codex Arena
+# Codexeum
 
 Your pet. Your skills. Your move.
 
-Codex Arena is a two-player, turn-based pet battle concept where knowledge powers attacks. Each player brings a pet, picks a skill category, and faces five questions. Codex answers for your pet, and you can step in when it needs help. The battle shows the answers and results so you can follow how each move plays out.
+Codexeum combines Codex + Colosseum: a retro arena for pet-powered brain battles. The original pixel Colosseum mark doubles as the website favicon.
+
+Codexeum is a two-player, turn-based pet battle concept where knowledge powers attacks. Each player brings a pet, picks a skill category, and faces five questions. Codex answers for your pet, and you can step in when it needs help. The battle shows the answers and results so you can follow how each move plays out.
 
 The intended experience takes inspiration from retro creature battles: two pets facing off, health bars, skill choices, and a dialogue box narrating the action.
 
