@@ -23,13 +23,13 @@ PUBLIC = Path(__file__).parent / "public"
 app = FastAPI(title="Codex Arena API")
 
 SKILLS = [
-    {"id": "debugging", "name": "Debugging", "symbol": "⌘"},
-    {"id": "python", "name": "Python", "symbol": "Py"},
-    {"id": "javascript", "name": "JavaScript", "symbol": "JS"},
-    {"id": "logic", "name": "Logic", "symbol": "◇"},
-    {"id": "web", "name": "Web", "symbol": "◎"},
-    {"id": "data", "name": "Data", "symbol": "▥"},
-    {"id": "security", "name": "Security", "symbol": "⛨"},
+    {"id": "geography", "name": "Geography", "symbol": "◎"},
+    {"id": "art", "name": "Art", "symbol": "✎"},
+    {"id": "maths", "name": "Maths", "symbol": "∑"},
+    {"id": "biology", "name": "Biology", "symbol": "✿"},
+    {"id": "history", "name": "History", "symbol": "⌛"},
+    {"id": "music", "name": "Music", "symbol": "♫"},
+    {"id": "science", "name": "Science", "symbol": "⚛"},
 ]
 
 
@@ -123,9 +123,11 @@ def ask_pet(code: str, request: Request, data: Annotated[Any, Body()] = None):
     options = "\n".join(
         f"{chr(65 + i)}. {option}" for i, option in enumerate(question["options"])
     )
+    pet_model = os.getenv("PET_MODEL", "gpt-6-luna")
     try:
         response = OpenAI(timeout=7.0, max_retries=0).responses.create(
-            model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+            model=pet_model,
+            **({"reasoning": {"effort": "none"}} if pet_model == "gpt-6-luna" else {}),
             instructions="You are a player's friendly battle pet. Help with the current quiz question. Be brief, suggest an option when useful, and never claim you submitted an answer. The player chooses the answer.",
             input=f"Question: {question['prompt']}\n{options}\n\nPlayer's prompt: {prompt.strip()}",
             max_output_tokens=150,

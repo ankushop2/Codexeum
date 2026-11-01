@@ -14,7 +14,7 @@ from test_game import MemoryStore
 @pytest.fixture
 def sample():
     return {
-        "category": "python",
+        "category": "maths",
         "question": "What is 1 + 1?",
         "options": [
             {"id": "A", "text": "1"},
@@ -39,7 +39,7 @@ def test_invalid_generated_questions(sample):
 def test_generator_requests_five_questions(monkeypatch, sample):
     monkeypatch.setenv("OPENAI_API_KEY", "test")
     client = Mock()
-    categories = ["python", "python", "web", "web", "logic"]
+    categories = ["maths", "maths", "geography", "geography", "art"]
     questions = [
         GeneratedQuestion(
             **{**sample, "category": category, "question": f"Question {i}"}
@@ -48,12 +48,12 @@ def test_generator_requests_five_questions(monkeypatch, sample):
     ]
     client.responses.parse.return_value.output_parsed = QuestionSet(questions=questions)
     monkeypatch.setattr(question_generator, "OpenAI", lambda **kwargs: client)
-    result = question_generator.generate_questions("python", "web", "logic")
+    result = question_generator.generate_questions("maths", "geography", "art")
     assert [q["category"] for q in result] == categories
     assert all(q["answer"] == 1 for q in result)
     assert client.responses.parse.call_args.kwargs["text_format"] is QuestionSet
     with pytest.raises(question_generator.GenerationError):
-        question_generator.generate_questions("python", "web", "data")
+        question_generator.generate_questions("maths", "geography", "biology")
 
 
 def test_join_generation_failure_leaves_room_waiting(monkeypatch):
@@ -65,8 +65,10 @@ def test_join_generation_failure_leaves_room_waiting(monkeypatch):
 
     monkeypatch.setattr(game, "generate_questions", fail)
     client = TestClient(api.app)
-    first = client.post("/api/games", json={"category": "python"}).json()
-    result = client.post(f"/api/games/{first['code']}/join", json={"category": "web"})
+    first = client.post("/api/games", json={"category": "maths"}).json()
+    result = client.post(
+        f"/api/games/{first['code']}/join", json={"category": "geography"}
+    )
     assert result.status_code == 502
     state = client.get(
         f"/api/games/{first['code']}",
@@ -74,7 +76,7 @@ def test_join_generation_failure_leaves_room_waiting(monkeypatch):
     )
     assert state.json()["phase"] == "waiting"
     assert len(state.json()["players"]) == 1
-    assert client.post("/api/questions", json={"category": "python"}).status_code in (
+    assert client.post("/api/questions", json={"category": "maths"}).status_code in (
         404,
         405,
     )

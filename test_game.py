@@ -51,9 +51,9 @@ class GameTests(unittest.TestCase):
         generator = patch("game.generate_questions", side_effect=generated_questions)
         generator.start()
         self.addCleanup(generator.stop)
-        self.first = game.create_game(self.store, "python")
+        self.first = game.create_game(self.store, "maths")
         self.code = self.first["code"]
-        self.second = game.join_game(self.store, self.code, "web")
+        self.second = game.join_game(self.store, self.code, "geography")
         self.tokens = [self.first["token"], self.second["token"]]
 
     def test_concurrent_answers_score_and_advance_once(self):
@@ -79,7 +79,7 @@ class GameTests(unittest.TestCase):
         category = current["questions"][0]["category"]
         self.assertEqual(
             [p["score"] for p in state["players"]],
-            [2 if category == c else 5 for c in ("python", "web")],
+            [2 if category == c else 5 for c in ("maths", "geography")],
         )
         self.assertEqual(state["round"], 2)
         self.assertEqual(len(state["history"]), 1)
@@ -94,7 +94,7 @@ class GameTests(unittest.TestCase):
             state = game.get_game(self.store, self.code, self.tokens[0])
         self.assertEqual(state["round"], 2)
         self.assertEqual(state["history"][0]["answers"], [None, None])
-        self.assertEqual(state["deadline"], current["deadline"] + 10)
+        self.assertEqual(state["deadline"], current["deadline"] + 30)
 
     def test_complete_five_rounds_and_hide_answers(self):
         for round_number in range(1, 6):
@@ -158,10 +158,12 @@ class ApiTests(unittest.TestCase):
         self.client = TestClient(app.app)
 
     def test_create_join_get_answer(self):
-        first = self.client.post("/api/games", json={"category": "python"})
+        first = self.client.post("/api/games", json={"category": "maths"})
         self.assertEqual(first.status_code, 201)
         code = first.json()["code"]
-        second = self.client.post(f"/api/games/{code}/join", json={"category": "web"})
+        second = self.client.post(
+            f"/api/games/{code}/join", json={"category": "geography"}
+        )
         self.assertEqual(second.status_code, 200)
         headers = {"Authorization": "Bearer " + first.json()["token"]}
         state = self.client.get(f"/api/games/{code}", headers=headers)

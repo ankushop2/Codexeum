@@ -68,7 +68,7 @@ export default function App() {
   const [step, setStep] = useState(0);
   const [nickname, setNickname] = useState("");
   const [skills, setSkills] = useState<Skill[]>([]);
-  const [selected, setSelected] = useState("debugging");
+  const [selected, setSelected] = useState("geography");
   const [error, setError] = useState("");
   const [skillError, setSkillError] = useState(false);
   const [columns, setColumns] = useState(1);

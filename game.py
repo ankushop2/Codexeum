@@ -11,7 +11,8 @@ from urllib.request import Request, urlopen
 
 from question_generator import generate_questions
 
-CATEGORIES = ("debugging", "python", "javascript", "logic", "web", "data", "security")
+CATEGORIES = ("geography", "art", "maths", "biology", "history", "music", "science")
+ROUND_SECONDS = 30
 TTL = 3600
 CAS = "if redis.call('GET', KEYS[1]) == ARGV[1] then redis.call('SET', KEYS[1], ARGV[2], 'EX', ARGV[3]); return 1 else return 0 end"
 
@@ -163,7 +164,7 @@ def advance(game, now):
         game["phase"] = "finished"
         game["deadline"] = None
     else:
-        game["deadline"] = now + 10
+        game["deadline"] = now + ROUND_SECONDS
 
 
 def update(store, code, action):
@@ -207,7 +208,7 @@ def join_game(store, code, category, profile=None):
         game["players"].append(second)
         game["questions"] = questions
         game["phase"] = "playing"
-        game["deadline"] = now + 10
+        game["deadline"] = now + ROUND_SECONDS
         return lambda game, now: {"code": code, "token": second["token"]}
 
     return update(store, code, action)

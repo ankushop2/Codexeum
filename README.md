@@ -14,7 +14,7 @@ A retro, two-player quiz battle where your pet faces off against a rival in a fi
 [![Docker](https://img.shields.io/badge/Docker-One%20container-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 [![GitHub last commit](https://img.shields.io/github/last-commit/ankushop2/Codexeum)](https://github.com/ankushop2/Codexeum/commits/main)
 
-**2 players · 5 rounds · 10 seconds per round · 1 winner**
+**2 players · 5 rounds · 30 seconds per round · 1 winner**
 
 </div>
 
@@ -35,14 +35,14 @@ flowchart LR
     D -->|Player 2| F[Join with code]
     E --> G[OpenAI generates 5 questions]
     F --> G
-    G --> H[Answer each round in 10 seconds]
+    G --> H[Answer each round in 30 seconds]
     H --> I[See scores, round log & winner]
 ```
 
 1. **Choose a pet.** Pick a starter or import a Codex pet folder containing `spritesheet.png` (or `spritesheet.webp`) and `pet-record.json`. The importer reads the pet's name and recognizes supported sprite-sheet layouts. You can also select an image and metadata files together.
-2. **Pick your specialty.** Choose Debugging, Python, JavaScript, Logic, Web, Data, or Security. The two players must choose different specialties.
+2. **Pick your specialty.** Choose Geography, Art, Maths, Biology, History, Music, or Science. The two players must choose different specialties.
 3. **Create or join a room.** Player 1 shares a six-character code. The match starts when player 2 joins and questions are ready.
-4. **Battle through five questions.** There are two questions from each player's specialty and one from a shared random category. Each round lasts up to 10 seconds and ends early if both players answer.
+4. **Battle through five questions.** There are two questions from each player's specialty and one from a shared random category. Each round lasts up to 30 seconds and ends early if both players answer.
 5. **See who won.** A correct answer earns 2 points in your specialty and 5 points in another category. The game shows each resolved round, the final scores, and a winner or draw.
 
 The arena places your pet opposite your rival, with the question beside it. On small screens the panels stack. Imported pet artwork is shown as a first-frame portrait in battle; a true rear-facing view needs separate artwork.
@@ -92,6 +92,7 @@ UPSTASH_REDIS_REST_URL=your_upstash_rest_url
 UPSTASH_REDIS_REST_TOKEN=your_upstash_rest_token
 OPENAI_API_KEY=your_openai_api_key
 OPENAI_MODEL=gpt-4o-mini
+PET_MODEL=gpt-6-luna
 ```
 
 ```sh
