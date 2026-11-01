@@ -342,6 +342,18 @@ h2,
 .codex-import-heading > span {
   font-size: 9px;
 }
+.codex-pixel-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.codex-pixel-brand img {
+  image-rendering: pixelated;
+}
+.codex-pixel-brand strong {
+  font-size: 20px;
+}
 .codex-import-heading h2 {
   font-size: 17px;
   line-height: 1.8;

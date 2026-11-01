@@ -395,6 +395,15 @@ export default function App() {
           {step === 0 ? (
             <>
               <div className="codex-import-heading">
+                <div className="codex-pixel-brand">
+                  <img
+                    src="/codex-pixel.svg"
+                    width="48"
+                    height="48"
+                    alt="Pixel-art Codex logo"
+                  />
+                  <strong>CODEX</strong>
+                </div>
                 <span>BRING YOUR CODEX COMPANION</span>
                 <h2>Your pet. Your adventure.</h2>
                 <p>
