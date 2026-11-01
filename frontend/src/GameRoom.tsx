@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import BattleArena from "./BattleArena";
 import Leaderboard from "./Leaderboard";
 import LearningProgress from "./LearningProgress";
+import ResultsModal from "./ResultsModal";
 import type { BattlePet, Fighter } from "./BattleArena";
 
 type Session = { code: string; token: string };
@@ -922,9 +923,31 @@ export default function GameRoom({
           {error}
         </p>
       )}
-      {(!session || game?.phase === "finished") && (
+      {game?.phase === "finished" && (
+        <ResultsModal
+          key={`results-${session?.code}`}
+          nickname={nickname}
+          outcome={
+            game.winner === null
+              ? "IT’S A DRAW!"
+              : game.winner === game.you
+                ? "YOU WIN!"
+                : "GREAT EFFORT!"
+          }
+          score={mine?.score ?? 0}
+          rivalScore={rival?.score ?? 0}
+          correct={
+            game.history.filter((round) => round.answers[game.you] === true)
+              .length
+          }
+          review={game.history.filter(
+            (round) => round.answers[game.you] !== true,
+          )}
+        />
+      )}
+      {!session && (
         <LearningProgress
-          key={`progress-${session?.code || "lobby"}`}
+          key="progress-lobby"
           nickname={nickname}
           completed={game?.phase === "finished"}
           review={
