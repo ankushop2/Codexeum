@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, CSSProperties } from "react";
 
 import GameRoom from "./GameRoom";
+import Leaderboard from "./Leaderboard";
 
 type Skill = { id: string; name: string; symbol: string };
 
@@ -66,6 +67,7 @@ export default function App() {
   const [pets, setPets] = useState(starters);
   const [index, setIndex] = useState(0);
   const [step, setStep] = useState(0);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [nickname, setNickname] = useState("");
   const [skills, setSkills] = useState<Skill[]>([]);
   const [selected, setSelected] = useState("geography");
@@ -244,6 +246,21 @@ export default function App() {
           <h1>CODEXEUM</h1>
         </div>
       </div>
+      <div className="league-navigation">
+        <button
+          className="retro-button secondary"
+          aria-expanded={showLeaderboard}
+          aria-controls="main-leaderboard"
+          onClick={() => setShowLeaderboard((open) => !open)}
+        >
+          {showLeaderboard ? "CLOSE LEADERBOARD ↑" : "🏆 VIEW LEADERBOARD"}
+        </button>
+      </div>
+      {showLeaderboard && (
+        <div id="main-leaderboard" className="main-leaderboard">
+          <Leaderboard nickname={nickname} />
+        </div>
+      )}
       <nav className="steps" aria-label="Setup progress">
         {["YOUR PET", "YOUR SKILL", "READY UP"].map((label, i) => (
           <span

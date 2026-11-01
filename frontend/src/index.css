@@ -952,6 +952,26 @@ footer {
   margin-top: 24px;
   padding-top: 16px;
 }
+.league-navigation {
+  display: flex;
+  justify-content: flex-end;
+  margin: 12px 0;
+}
+.league-navigation .retro-button {
+  font-size: 10px;
+  margin: 0;
+}
+.main-leaderboard {
+  padding: 18px;
+  border: 3px solid #293b30;
+  background: #e1e6cb;
+  margin-bottom: 24px;
+}
+.main-leaderboard .leaderboard {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
 .leaderboard h3 {
   font-size: 13px;
 }
