@@ -890,51 +890,6 @@ footer {
   width: 100%;
   accent-color: #43513b;
 }
-.successful-move .battle-creature {
-  animation: victory-hop 650ms ease-out;
-}
-.move-stars {
-  position: absolute;
-  inset: 0;
-  text-align: center;
-  font-size: 32px;
-  color: #705600;
-  pointer-events: none;
-  animation: victory-stars 900ms ease-out forwards;
-  z-index: 5;
-}
-@keyframes victory-hop {
-  0%,
-  100% {
-    translate: 0 0;
-  }
-  35% {
-    translate: 0 -22px;
-  }
-  65% {
-    translate: 0 -8px;
-  }
-}
-@keyframes victory-stars {
-  from {
-    opacity: 1;
-    scale: 0.5;
-  }
-  to {
-    opacity: 0;
-    scale: 1.6;
-    translate: 0 -35px;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .successful-move .battle-creature,
-  .move-stars {
-    animation: none;
-  }
-  .move-stars {
-    display: none;
-  }
-}
 .pet-advice p {
   margin: 8px 0 0;
 }
@@ -1466,4 +1421,376 @@ footer {
 }
 .setup-details > p:first-child {
   margin-top: 0;
+}
+.round-pet {
+  position: relative;
+  --attack-x: 28px;
+  --attack-y: -20px;
+}
+.enemy-position .round-pet {
+  --attack-x: -28px;
+  --attack-y: 20px;
+}
+.round-cheer .pet-motion {
+  animation: pet-cheer 1.5s ease-out;
+}
+.round-miss .pet-motion {
+  animation: pet-miss 1s ease-out;
+}
+.round-attack .pet-motion {
+  animation: pet-lunge 1.5s ease-out;
+}
+.pet-reaction {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  animation: reaction-lifetime 3s forwards;
+  z-index: 5;
+}
+.reaction-bubble {
+  position: absolute;
+  top: 0;
+  left: -24px;
+  padding: 9px 10px;
+  border: 3px solid #293b30;
+  background: #fff7cd;
+  color: #293b30;
+  font:
+    10px/1.5 "Press Start 2P",
+    monospace;
+  box-shadow: 3px 3px 0 #293b30;
+  white-space: nowrap;
+  z-index: 2;
+  animation: bubble-pop 3s both;
+}
+.reaction-bubble::after {
+  content: "";
+  position: absolute;
+  bottom: -10px;
+  right: 12px;
+  border-top: 10px solid #293b30;
+  border-left: 10px solid transparent;
+}
+.round-miss .reaction-bubble {
+  background: #dedcf0;
+}
+.reaction-stars {
+  position: absolute;
+  top: 40px;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  color: #886100;
+  font-size: 32px;
+  animation: stars-rise 1.8s both;
+}
+.reaction-spark {
+  position: absolute;
+  top: 60px;
+  color: #aa6900;
+  font-size: 30px;
+  animation: spark-flight 1.8s both;
+}
+.spark-one {
+  left: 0;
+  --spark-x: -28px;
+}
+.spark-two {
+  right: 0;
+  --spark-x: 28px;
+  animation-delay: 150ms;
+}
+.celebration-ring {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  border: 5px solid #e5bd45;
+  border-radius: 50%;
+  left: 18px;
+  top: 30px;
+  animation: ring-burst 1.1s both;
+}
+.falling-arrows {
+  position: absolute;
+  left: 15px;
+  top: 20px;
+  display: flex;
+  gap: 14px;
+  font-size: 26px;
+  color: #654b91;
+  text-shadow: 2px 2px #fff;
+}
+.falling-arrows span {
+  opacity: 0;
+  animation: arrows-fall 750ms 3;
+}
+.falling-arrows span:nth-child(2) {
+  animation-delay: 180ms;
+}
+.falling-arrows span:nth-child(3) {
+  animation-delay: 360ms;
+}
+.miss-cloud {
+  position: absolute;
+  bottom: 8px;
+  left: 40px;
+  color: #654b91;
+  font-size: 36px;
+  animation: stars-rise 2s both;
+}
+.round-effects {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+  animation: reaction-lifetime 3s forwards;
+}
+.round-banner {
+  position: absolute;
+  top: 47%;
+  left: 50%;
+  translate: -50% -50%;
+  width: max-content;
+  max-width: 94%;
+  text-align: center;
+  background: #fff7cd;
+  border: 3px solid #354936;
+  padding: 10px 14px;
+  box-shadow: 4px 4px 0 #354936;
+  animation: banner-pop 3s both;
+  z-index: 2;
+}
+.round-banner small {
+  display: block;
+  font-size: 9px;
+  margin-bottom: 6px;
+}
+.round-banner strong {
+  font:
+    clamp(9px, 1.4vw, 13px)/1.6 "Press Start 2P",
+    monospace;
+  color: #354936;
+}
+.double-miss .round-banner {
+  background: #dedcf0;
+}
+.battle-strike {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.strike-trail {
+  fill: none;
+  stroke: #d7a52b;
+  stroke-width: 2;
+  stroke-linejoin: miter;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  filter: drop-shadow(0 0 3px #fff9cd);
+  animation: strike-travel 900ms ease-out both;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+@keyframes pet-cheer {
+  0%,
+  40%,
+  75%,
+  100% {
+    translate: 0 0;
+  }
+  20%,
+  58% {
+    translate: 0 -25px;
+  }
+  85% {
+    translate: 0 -10px;
+  }
+}
+@keyframes pet-lunge {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  20% {
+    translate: var(--attack-x) var(--attack-y);
+  }
+  40% {
+    translate: 0 -20px;
+  }
+  65% {
+    translate: 0 0;
+  }
+  80% {
+    translate: 0 -12px;
+  }
+}
+@keyframes pet-miss {
+  0%,
+  100% {
+    translate: 0 0;
+    rotate: 0deg;
+  }
+  20%,
+  60% {
+    translate: -8px 4px;
+    rotate: -6deg;
+  }
+  40%,
+  80% {
+    translate: 8px 4px;
+    rotate: 6deg;
+  }
+}
+@keyframes reaction-lifetime {
+  0%,
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+@keyframes bubble-pop {
+  0% {
+    scale: 0.4;
+    opacity: 0;
+  }
+  12% {
+    scale: 1.1;
+    opacity: 1;
+  }
+  20%,
+  85% {
+    scale: 1;
+    opacity: 1;
+  }
+  100% {
+    scale: 0.9;
+    opacity: 0;
+  }
+}
+@keyframes banner-pop {
+  0%,
+  8% {
+    scale: 0.6;
+    opacity: 0;
+  }
+  18% {
+    scale: 1.08;
+    opacity: 1;
+  }
+  25%,
+  82% {
+    scale: 1;
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    scale: 0.9;
+  }
+}
+@keyframes stars-rise {
+  0% {
+    opacity: 0;
+    translate: 0 25px;
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    translate: 0 -45px;
+  }
+}
+@keyframes spark-flight {
+  0% {
+    opacity: 0;
+    translate: 0 0;
+    scale: 0.3;
+  }
+  25% {
+    opacity: 1;
+    scale: 1;
+  }
+  100% {
+    opacity: 0;
+    translate: var(--spark-x) -50px;
+    rotate: 120deg;
+  }
+}
+@keyframes ring-burst {
+  0% {
+    scale: 0.3;
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.9;
+  }
+  100% {
+    scale: 1.6;
+    opacity: 0;
+  }
+}
+@keyframes arrows-fall {
+  0% {
+    opacity: 0;
+    translate: 0 -25px;
+  }
+  30%,
+  65% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    translate: 0 80px;
+  }
+}
+@keyframes strike-travel {
+  0% {
+    opacity: 0;
+    stroke-dashoffset: 100;
+  }
+  20% {
+    opacity: 1;
+  }
+  60% {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+  100% {
+    opacity: 0;
+    stroke-dashoffset: -100;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .round-pet .pet-motion,
+  .pet-reaction,
+  .reaction-bubble,
+  .round-effects,
+  .round-banner {
+    animation: none;
+  }
+  .reaction-stars,
+  .reaction-spark,
+  .celebration-ring,
+  .falling-arrows,
+  .miss-cloud,
+  .battle-strike {
+    display: none;
+  }
+  .reaction-bubble {
+    font-size: 8px;
+  }
 }

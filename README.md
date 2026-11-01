@@ -148,3 +148,5 @@ Choose Play Against Bot to create a game with an automatically ready bot. The bo
 For bot games, `POST /api/games` accepts `"difficulty":"easy"`, `"med"` or `"hard"` alongside `"mode":"bot"`. The default is `"med"`.
 
 Game setup first asks whether to play with a player or a bot. Player mode offers Create Room or Join Room; bot mode offers Easy, Medium or Hard without revealing answer counts.
+
+Round-end arena effects celebrate correct answers with cheering, stars and jumps; misses and timeouts trigger falling arrows and a wobble. A one-sided hit sends a lightning trail toward the other pet. Effects run once per resolved round for three seconds, without delaying answers. Reduced-motion settings replace movement with static feedback.

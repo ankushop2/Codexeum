@@ -20,3 +20,6 @@ Bot correct-answer count gets a uniform random offset of -1, 0 or +1 per game (a
 Bot difficulty defaults to med (assumed).
 Setup chooses player or bot before showing room options or difficulty.
 Bot difficulty UI hides correct-answer counts.
+Round results play once per round: correct pets cheer, wrong or timed-out pets receive falling arrows.
+Round effects last three seconds and do not block answers or change server deadlines.
+Reduced-motion users see static round feedback instead of movement.

@@ -686,7 +686,11 @@ export default function GameRoom({
                 <BattleArena
                   roundResult={
                     lastRound
-                      ? { round: lastRound.round, mine: myHit, rival: rivalHit }
+                      ? {
+                          round: lastRound.round,
+                          mine: lastRound.answers[game.you],
+                          rival: lastRound.answers[game.you === 0 ? 1 : 0],
+                        }
                       : undefined
                   }
                   mine={mine}
