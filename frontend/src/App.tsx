@@ -74,6 +74,7 @@ export default function App() {
   const [columns, setColumns] = useState(1);
   const [rows, setRows] = useState(1);
   const fileInput = useRef<HTMLInputElement>(null);
+  const folderInput = useRef<HTMLInputElement>(null);
   const urls = useRef<string[]>([]);
   const pet = pets[index];
 
@@ -122,17 +123,32 @@ export default function App() {
     const files = Array.from(event.target.files || []);
     event.target.value = "";
     if (!files.length) return;
-    const images = files.filter((file) =>
+    const folderSelection = files.some((file) => file.webkitRelativePath);
+    const rootFiles = folderSelection
+      ? files.filter((file) => file.webkitRelativePath.split("/").length === 2)
+      : files;
+    const images = rootFiles.filter((file) =>
       ["image/png", "image/webp", "image/gif"].includes(file.type),
     );
-    const metadata = files.find(
+    const metadata = rootFiles.find(
       (file) => file.name.toLowerCase() === "pet-record.json",
     );
-    if (images.length !== 1) {
-      setError("Select one pet image and optionally pet-record.json together.");
+    const sheet = images.find((file) =>
+      ["spritesheet.png", "spritesheet.webp"].includes(file.name.toLowerCase()),
+    );
+    const file = folderSelection
+      ? sheet
+      : images.length === 1
+        ? images[0]
+        : undefined;
+    if (!file) {
+      setError(
+        folderSelection
+          ? "No spritesheet.png or spritesheet.webp found in this folder. Choose your pet’s output folder."
+          : "Select one pet image and optionally pet-record.json together.",
+      );
       return;
     }
-    const file = images[0];
     let petName = "";
     if (metadata) {
       try {
@@ -378,11 +394,21 @@ export default function App() {
             <div className="import-row">
               <button
                 className="retro-button secondary"
-                onClick={() => fileInput.current?.click()}
+                onClick={() => folderInput.current?.click()}
               >
-                ↑ IMPORT PET
+                ↑ CHOOSE PET FOLDER
               </button>
-              <span>SELECT IMAGE + PET-RECORD.JSON · MAX 5 MB</span>
+              <span>CHOOSE THE FOLDER CONTAINING YOUR PET</span>
+              <input
+                hidden
+                ref={(input) => {
+                  folderInput.current = input;
+                  input?.setAttribute("webkitdirectory", "");
+                }}
+                type="file"
+                multiple
+                onChange={importPet}
+              />
               <input
                 hidden
                 ref={fileInput}
@@ -392,15 +418,21 @@ export default function App() {
                 onChange={importPet}
               />
             </div>
+            <button
+              className="text-button import-files"
+              onClick={() => fileInput.current?.click()}
+            >
+              Or select image and metadata files
+            </button>
             <details className="import-help">
               <summary>Where’s my Codex pet?</summary>
               <p>
-                On your Mac, use Finder → Go → Go to Folder and enter{" "}
-                <code>~/.codex/pets/</code>. If your custom pet has an image or
-                sprite sheet there, select it together with pet-record.json to
-                load its name automatically. Built-in pets may be bundled with
-                the app rather than in this folder. You can also use your own
-                pet artwork. The image stays in this browser tab.
+                Choose the folder containing <code>spritesheet.png</code> and{" "}
+                <code>pet-record.json</code>. The game reads the name and
+                animation layout automatically. If your pet is stored elsewhere,
+                select the image and metadata files instead. A small portrait
+                and name are shared with your opponent when you join a room; the
+                original files stay on your device.
               </p>
             </details>
             {pet.image && (
