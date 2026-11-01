@@ -13,9 +13,9 @@ WORKDIR /app
 ENV UV_COMPILE_BYTECODE=1 PYTHONUNBUFFERED=1 PORT=80
 COPY pyproject.toml ./
 RUN uv sync --no-dev
-COPY app.py game.py ./
+COPY app.py game.py models.py question_generator.py ./
 COPY --from=frontend /app/public ./public
 RUN useradd --create-home battle
 USER battle
 EXPOSE 80
-CMD ["sh", "-c", "exec .venv/bin/gunicorn --bind 0.0.0.0:${PORT} --workers 2 --threads 4 app:app"]
+CMD ["sh", "-c", "exec .venv/bin/uvicorn app:app --host 0.0.0.0 --port ${PORT} --workers 2"]

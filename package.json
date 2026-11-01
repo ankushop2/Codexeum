@@ -3,13 +3,13 @@
   "private": true,
   "packageManager": "pnpm@10.23.0",
   "scripts": {
-    "dev": "concurrently --kill-others -n api,web \"uv run flask --app app run --debug --port 5001\" \"pnpm --dir frontend dev\"",
+    "dev": "concurrently --kill-others -n api,web \"uv run uvicorn app:app --reload --port 5001\" \"pnpm --dir frontend dev\"",
     "build": "pnpm --dir frontend build",
     "typecheck": "pnpm --dir frontend exec tsc -b",
     "quality-check": "pnpm typecheck",
-    "format": "prettier --write . && uv run ruff format app.py",
+    "format": "prettier --write . && uv run ruff format app.py models.py question_generator.py tests",
     "format:check": "prettier --check . && uv run ruff format --check app.py",
-    "start": "uv run gunicorn --bind 0.0.0.0:8000 app:app"
+    "start": "uv run uvicorn app:app --host 0.0.0.0 --port 8000"
   },
   "devDependencies": {
     "concurrently": "^9.2.0",
