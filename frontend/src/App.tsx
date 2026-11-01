@@ -382,7 +382,7 @@ export default function App() {
             {step === 0
               ? "Your battle begins here, trainer! Choose your partner or bring your own Codex pet into the arena."
               : step === 1
-                ? "Five questions. Two pets. Pick your specialty and help your partner claim victory!"
+                ? "Your pet has your back! Pick a specialty, answer for 5 points, or call on your pet for help and earn 2."
                 : "Share a room code with your rival. Five questions, thirty seconds each. Both players ready up, then start when the questions are ready!"}
             <span className="cursor">▼</span>
           </p>

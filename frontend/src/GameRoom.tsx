@@ -447,6 +447,10 @@ export default function GameRoom({
             Create a room and share its code, or join your rival. Choose
             different specialties.
           </p>
+          <p className="scoring-note">
+            Back yourself for 5 points. Get your pet’s help for 2. Your pet can
+            help outside its specialty, and you always choose the final answer.
+          </p>
           <button
             className="retro-button primary"
             disabled={busy}
@@ -616,11 +620,41 @@ export default function GameRoom({
                         </strong>
                       </div>
                       <h2 className="question">{game.question.prompt}</h2>
+                      {petBusy && (
+                        <div className="pet-advice" role="status">
+                          {myPetName} is thinking…
+                        </div>
+                      )}
+                      {petReply &&
+                        petReply.round === game.round &&
+                        !game.answered && (
+                          <aside
+                            className="pet-advice"
+                            aria-label="Pet advice"
+                            aria-live="polite"
+                          >
+                            <strong>
+                              {myPetName} SAYS
+                              {petReply.answer !== null
+                                ? `: TRY ${String.fromCharCode(65 + petReply.answer)}`
+                                : ":"}
+                            </strong>
+                            <p>{petReply.text.replace(/\*\*|__|`/g, "")}</p>
+                            <p>
+                              {petReply.needsHelp
+                                ? "I’m not sure!"
+                                : "Trust my pick, or choose another answer."}{" "}
+                              {petReply.answer !== null
+                                ? "A correct answer after pet advice earns 2 points."
+                                : "Choose your answer below."}
+                            </p>
+                          </aside>
+                        )}
                       <div className="answer-options">
                         {game.question.options.map((option, index) => (
                           <button
                             key={`${game.round}-${index}`}
-                            className="retro-button secondary"
+                            className={`retro-button secondary ${petReply?.round === game.round && petReply?.answer === index ? "pet-suggestion" : ""}`}
                             disabled={
                               busy || game.answered || remaining === 0 || fatal
                             }
@@ -637,6 +671,10 @@ export default function GameRoom({
                           >
                             <span>{String.fromCharCode(65 + index)}.</span>{" "}
                             {option}
+                            {petReply?.round === game.round &&
+                              petReply?.answer === index && (
+                                <small> ← PET’S PICK</small>
+                              )}
                           </button>
                         ))}
                       </div>
@@ -683,26 +721,6 @@ export default function GameRoom({
                                 {petBusy ? "THINKING…" : "ASK PET →"}
                               </button>
                             </>
-                          )}
-                        {petBusy && (
-                          <p role="status">{myPetName} is thinking…</p>
-                        )}
-                        {petReply &&
-                          petReply.round === game.round &&
-                          !game.answered && (
-                            <p role="status">
-                              {petReply.answer !== null && (
-                                <>
-                                  PET SUGGESTS{" "}
-                                  {String.fromCharCode(65 + petReply.answer)}
-                                  .{" "}
-                                </>
-                              )}
-                              {petReply.text}{" "}
-                              {petReply.needsHelp
-                                ? "Your pet is unsure. Choose an answer above!"
-                                : "Choose your answer above!"}
-                            </p>
                           )}
                       </div>
                       <p className="scoring-note">

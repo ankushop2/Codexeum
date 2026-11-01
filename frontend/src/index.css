@@ -777,6 +777,26 @@ footer {
   gap: 8px;
   margin-top: 18px;
 }
+.pet-advice {
+  padding: 14px;
+  margin-bottom: 16px;
+  border: 3px solid #43513b;
+  background: #dce6c4;
+  box-shadow: 3px 3px 0 #87996e;
+  font-size: 12px;
+}
+.pet-advice p {
+  margin: 8px 0 0;
+}
+.answer-options .pet-suggestion {
+  outline: 3px solid #43513b;
+  background: #dce6c4;
+}
+.pet-suggestion small {
+  display: block;
+  margin-top: 6px;
+  font-size: 10px;
+}
 .pet-prompt label {
   font-size: 10px;
 }
