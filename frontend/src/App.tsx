@@ -246,6 +246,39 @@ export default function App() {
           <h1>CODEXEUM</h1>
         </div>
       </div>
+      {step === 0 && (
+        <section className="homepage-intro" aria-label="About Codexeum">
+          <h2>Big discoveries. Little adventures.</h2>
+          <p>
+            Learn through play with your Codex pet. Explore new subjects, tackle
+            five-question battles and get a friendly hint when you’re stuck.
+          </p>
+          <div className="homepage-audiences">
+            <article>
+              <span>FOR CURIOUS KIDS</span>
+              <h3>Grow your knowledge together.</h3>
+              <p>
+                Discover geography, art, maths, biology and more. Your pet is
+                your learning buddy, and every round is another chance to try.
+              </p>
+              <p>
+                Follow your subject progress and climb the Pet League as you
+                earn points. Celebrate what you’ve learned, then come back for a
+                new challenge!
+              </p>
+            </article>
+            <article>
+              <span>FOR DEVELOPERS · COMING NEXT</span>
+              <h3>Give your coding skills a workout.</h3>
+              <p>
+                A coding section for adult learners and developers is planned,
+                with programming challenges and a pet whose specialist skills
+                can help you work through them.
+              </p>
+            </article>
+          </div>
+        </section>
+      )}
       <div className="league-navigation">
         <button
           className="retro-button secondary"
