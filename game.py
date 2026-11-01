@@ -444,6 +444,7 @@ def view(game, now, index):
             {
                 "category": p["category"],
                 "ready": p.get("ready", False),
+                "controller": p.get("controller", "browser"),
                 "bot": p.get("bot", False),
                 "nickname": p.get("nickname", "TRAINER"),
                 "pet": p.get("pet", {"name": "BYTE", "color": "#aaa0e8"}),

@@ -64,3 +64,34 @@ Open [localhost:8000](http://localhost:8000).
 Built during the DevDay Community Hackathon in London on 1 November 2026. One concrete example: Codex implemented the pet-help flow and scoring, then updated the interface to distinguish independent answers from assisted ones.
 
 The app started with create-vite. It uses React, FastAPI, the OpenAI SDK and Upstash Redis. Starter pets and the pixel Colosseum are project artwork; imported pets belong to their creators. The pixel Codex mark is a stylised rendition of the Codex logo. Fonts come from Google Fonts. Dependencies retain their own licences.
+
+## Codexeum terminal arena and skill
+
+The terminal arena recreates the facing-pet field, question panel, narration, countdown, round history and result screen using terminal colors and image-to-character rendering. It connects to the same FastAPI rooms as the website. Local Codex answers automatically through a dedicated ephemeral App Server conversation; A–D submits a human answer, Space toggles autoplay, and Q exits. READY prepares questions; START BATTLE begins the clock. Exiting does not pause a running server match.
+
+```sh
+uv sync --extra tui
+uv run --extra tui python -m codexeum new --url http://localhost:5001
+uv run --extra tui python -m codexeum ABC123 --url https://YOUR-DEPLOYMENT
+```
+
+Supply `--pet /path/to/pet-folder` or `--pet /path/to/image.png` to use your pet; the first idle frame is used for v1/v2 sheets. A single installed custom pet under `~/.codex/pets` is detected automatically. Built-in Codex pet assets and the current desktop selection are not exposed through a verified public API; when no artwork is available, the TUI uses a text cat. `CODEXEUM_PET`, `CODEXEUM_NICKNAME`, `CODEXEUM_URL`, `CODEXEUM_MODEL`, and `CODEXEUM_CODEX_BIN` can set local defaults. The client finds Codex on PATH or in the macOS desktop app bundle and uses its existing sign-in. No OpenAI key is sent to the game server by the terminal client.
+
+To connect an existing browser player, click **CONNECT MY CODEX** in the room and use the `P-` code in place of `ABC123`. Pairing codes expire after five minutes and can be redeemed once. They grant access to that player seat, so keep them private. Room codes join a new seat. Browser and terminal share answer locking; the first accepted answer wins.
+
+The skill source is `skills/codexeum`. Install it for this checkout:
+
+```sh
+mkdir -p ~/.agents/skills
+ln -s "$PWD/skills/codexeum" ~/.agents/skills/codexeum
+```
+
+In the desktop app, enabled skills appear in the slash menu: select **codexeum**, then supply `new`, a room code, or a pairing code. `$codexeum new` is the explicit skill form supported across Codex surfaces. Stock Codex CLI does not document arbitrary bare `/codexeum` registration from a skill; use `$codexeum new` or `/skills` there. This project does not modify the Codex executable.
+
+The skill launches a separate visible terminal via `scripts/launch_codexeum.py`. You can also launch it directly:
+
+```sh
+python3 scripts/launch_codexeum.py new --url https://YOUR-DEPLOYMENT
+```
+
+Terminal dependencies are optional and are not installed in the production Docker image. The server still needs its OpenAI and Redis settings. Tests use a mocked Codex protocol and in-memory game storage; a real match additionally needs a reachable server and signed-in local Codex.

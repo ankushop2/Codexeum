@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codexeum"
+  short_description: "Play pet quiz battles in a terminal arena"
+  default_prompt: "Use $codexeum new to open a new terminal arena session."

@@ -18,6 +18,7 @@ from game import (
     ready_game,
     start_game,
 )
+from pairing import create_pairing, redeem_pairing
 from models import PetDecision
 from question_generator import ConfigurationError, GenerationError
 
@@ -111,6 +112,22 @@ def create(data: Annotated[Any, Body()] = None):
 def join(code: str, data: Annotated[Any, Body()] = None):
     data = body(data)
     return join_game(store, code.upper(), data.get("category"), data.get("profile"))
+
+
+@app.post("/api/games/{code}/pairing")
+def pair(code: str, request: Request):
+    return JSONResponse(
+        create_pairing(store, code.upper(), token(request)),
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@app.post("/api/pairings/redeem")
+def redeem(data: Annotated[Any, Body()] = None):
+    return JSONResponse(
+        redeem_pairing(store, body(data).get("code")),
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 @app.post("/api/games/{code}/ready")

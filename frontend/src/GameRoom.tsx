@@ -10,7 +10,7 @@ type Game = {
   code: string;
   bot_difficulty?: "easy" | "med" | "hard";
   phase: "waiting" | "generating" | "ready" | "playing" | "finished";
-  players: (Fighter & { ready: boolean; bot: boolean })[];
+  players: (Fighter & { ready: boolean; bot: boolean; controller?: string })[];
   you: number;
   server_time: number;
   round?: number;
@@ -101,6 +101,7 @@ export default function GameRoom({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [pairing, setPairing] = useState("");
   const [remaining, setRemaining] = useState(0);
   const [fatal, setFatal] = useState(false);
   const [petPrompt, setPetPrompt] = useState("");
@@ -321,7 +322,12 @@ export default function GameRoom({
   }
 
   async function askPet(prompt = "") {
-    if (!session || !game?.round) return;
+    if (
+      !session ||
+      !game?.round ||
+      game.players[game.you]?.controller === "codex"
+    )
+      return;
     const round = game.round;
     const request = ++petRequest.current;
     petAttempt.current = `${session.code}:${round}`;
@@ -372,6 +378,7 @@ export default function GameRoom({
       !game.round ||
       game.answered ||
       !game.question ||
+      game.players[game.you]?.controller === "codex" ||
       game.question.category === game.players[game.you]?.category ||
       remaining > 15 ||
       remaining === 0
@@ -406,6 +413,24 @@ export default function GameRoom({
     setFatal(false);
     setError("");
     setNotice("");
+    setPairing("");
+  }
+
+  async function pairCodex() {
+    if (!session) return;
+    try {
+      const result = await api<{ pairing_code: string }>(
+        `/${session.code}/pairing`,
+        { method: "POST" },
+        session.token,
+      );
+      setPairing(result.pairing_code);
+      setError("");
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : "Could not pair Codex.",
+      );
+    }
   }
 
   async function copyCode() {
@@ -620,6 +645,25 @@ export default function GameRoom({
               </button>
             )}
           </div>
+          {game?.phase !== "finished" && (
+            <div className="codex-pairing">
+              <button className="text-button" onClick={() => void pairCodex()}>
+                CONNECT MY CODEX
+              </button>
+              {pairing && (
+                <p role="status">
+                  In Codex: <code>/codexeum {pairing}</code>
+                  <br />
+                  Single-use code, valid for five minutes. Keep it private.
+                </p>
+              )}
+              {mine?.controller === "codex" && (
+                <p role="status">
+                  Your local Codex is connected. You can still answer manually.
+                </p>
+              )}
+            </div>
+          )}
           {notice && <p role="status">{notice}</p>}
           {!game && !fatal && <p role="status">Connecting to your room…</p>}
           {game && ["waiting", "generating", "ready"].includes(game.phase) && (
