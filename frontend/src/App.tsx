@@ -534,50 +534,6 @@ export default function App() {
                 </p>
               </details>
               {pet.image && (
-                <div className="sprite-controls">
-                  <span>SPRITE SHEET?</span>
-                  <label>
-                    Columns{" "}
-                    <input
-                      type="number"
-                      min="1"
-                      max="32"
-                      value={columns}
-                      onChange={(event) =>
-                        setColumns(
-                          Math.max(
-                            1,
-                            Math.min(32, Number(event.target.value) || 1),
-                          ),
-                        )
-                      }
-                    />
-                  </label>
-                  <label>
-                    Rows{" "}
-                    <input
-                      type="number"
-                      min="1"
-                      max="32"
-                      value={rows}
-                      onChange={(event) =>
-                        setRows(
-                          Math.max(
-                            1,
-                            Math.min(32, Number(event.target.value) || 1),
-                          ),
-                        )
-                      }
-                    />
-                  </label>
-                  <small>
-                    {columns === 8 && (rows === 9 || rows === 11)
-                      ? "Codex pet sheet detected: playing six idle frames."
-                      : "Preview plays the first row. Adjust the grid for sprite sheets."}
-                  </small>
-                </div>
-              )}
-              {pet.image && (
                 <label className="nickname-label" htmlFor="pet-name">
                   PET NAME
                   <input

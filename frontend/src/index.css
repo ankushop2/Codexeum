@@ -481,28 +481,6 @@ h2,
   font-family: "Space Mono", monospace;
   font-size: 14px;
 }
-.sprite-controls {
-  font-size: 10px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin: 20px 0;
-}
-.sprite-controls label {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-.sprite-controls input {
-  width: 50px;
-  padding: 5px;
-  border: 1px solid #7b866c;
-  background: #f7f4e4;
-}
-.sprite-controls small {
-  width: 100%;
-}
 .imported-pet {
   width: 144px;
   height: 156px;

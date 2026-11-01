@@ -30,3 +30,4 @@ Pet help on hard questions uses the OpenAI Decisions API to eliminate exactly tw
 Hard-question help remains optional; player skill cannot be guaranteed by question generation.
 Ready players wait for their opponent; retry preparation is shown only after generation fails or times out.
 The A-level question banner is hidden; question difficulty remains unchanged.
+Imported pet grids are detected automatically; manual sprite rows/columns controls and detection hints are hidden.
