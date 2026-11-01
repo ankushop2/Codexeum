@@ -277,6 +277,7 @@ def advance(game, now):
             "correct_answer": game["questions"][game["round"]]["options"][
                 game["questions"][game["round"]]["answer"]
             ],
+            "question": game["questions"][game["round"]]["prompt"],
             "answers": [
                 game["answers"].get(str(i), {}).get("correct") for i in range(2)
             ],

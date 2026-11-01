@@ -20,6 +20,7 @@ type Game = {
     round: number;
     category: string;
     correct_answer?: string;
+    question?: string;
     answers: (boolean | null)[];
     sources?: (string | null)[];
     points?: (number | null)[];
@@ -851,8 +852,8 @@ export default function GameRoom({
                 </div>
               </div>
               {game.history.length > 0 && (
-                <div className="round-history">
-                  <h3>ROUND LOG</h3>
+                <details className="round-history">
+                  <summary>VIEW ROUND-BY-ROUND RESULTS</summary>
                   {game.history.map((round) => (
                     <div key={round.round}>
                       <span>
@@ -883,7 +884,7 @@ export default function GameRoom({
                       </span>
                     </div>
                   ))}
-                </div>
+                </details>
               )}
             </>
           )}
@@ -892,10 +893,12 @@ export default function GameRoom({
               ← Leave room locally
             </button>
           )}
-          <p className="scoring-note">
-            Leaving does not pause or cancel the match. Refresh this tab to
-            reconnect with your saved player token.
-          </p>
+          {game?.phase !== "finished" && (
+            <p className="scoring-note">
+              Leaving does not pause or cancel the match. Refresh this tab to
+              reconnect with your saved player token.
+            </p>
+          )}
         </>
       )}
       {error && (
@@ -907,6 +910,12 @@ export default function GameRoom({
         <LearningProgress
           key={`progress-${session?.code || "lobby"}`}
           nickname={nickname}
+          completed={game?.phase === "finished"}
+          review={
+            game?.phase === "finished"
+              ? game.history.filter((round) => round.answers[game.you] !== true)
+              : []
+          }
         />
       )}
       {(!session || game?.phase === "finished") && (

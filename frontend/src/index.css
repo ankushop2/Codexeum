@@ -1019,12 +1019,104 @@ footer {
   font-size: 10px;
 }
 .round-history > div {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 7px 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  padding: 14px 0;
   border-bottom: 1px solid #9cae88;
+}
+.round-history summary {
+  cursor: pointer;
+  padding: 12px 0;
+  line-height: 1.8;
+}
+.round-history small {
+  display: block;
+  margin-top: 8px;
+  line-height: 1.8;
+}
+.learning-progress {
+  max-width: 1000px;
+  margin-inline: auto;
+}
+.learning-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+.carousel-controls {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.carousel-controls .retro-button {
+  padding: 10px;
+  margin: 0;
+}
+.subject-progress.learning-carousel {
+  display: flex;
+  overflow-x: auto;
+  gap: 16px;
+  scroll-snap-type: x mandatory;
+  padding: 8px 4px 20px;
+}
+.learning-carousel article {
+  flex: 0 0 min(290px, 85%);
+  scroll-snap-align: start;
+  min-height: 240px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px;
+  line-height: 1.8;
+  box-shadow: 3px 3px 0 #87996e;
+}
+.learning-carousel article h4 {
+  font-size: 13px;
+  margin: 12px 0;
+}
+.review-card > span {
+  font-size: 9px;
+}
+.learning-celebration {
+  text-align: center;
+  padding: 24px;
+  margin-bottom: 24px;
+  background: #f7f4d9;
+  border: 3px solid #43513b;
+  animation: discovery-appear 600ms ease-out both;
+}
+.learning-celebration > span {
+  display: block;
+  font-size: 32px;
+  color: #806219;
+  animation: discovery-appear 900ms ease-out both;
+}
+@keyframes discovery-appear {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (max-width: 650px) {
+  .round-history > div {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .learning-heading {
+    align-items: start;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .learning-celebration,
+  .learning-celebration > span {
+    animation: none;
+  }
 }
 .match-result {
   text-align: center;
