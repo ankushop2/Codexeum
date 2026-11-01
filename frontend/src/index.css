@@ -324,6 +324,45 @@ h2,
 .controls {
   padding: 24px 0 10px;
 }
+.game-shell.pet-setup {
+  max-width: 1120px;
+}
+.pet-setup-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.pet-setup-layout .controls {
+  padding: 22px;
+  background: #e1e6cb;
+  border: 3px solid #293b30;
+  box-shadow: 5px 5px 0 #a5aa92;
+}
+.codex-import-heading > span {
+  font-size: 9px;
+}
+.codex-import-heading h2 {
+  font-size: 17px;
+  line-height: 1.8;
+  margin: 16px 0;
+}
+.codex-import-heading p {
+  font-size: 13px;
+  line-height: 1.8;
+}
+.pet-setup-layout .import-row {
+  display: block;
+}
+.pet-setup-layout .import-row .retro-button {
+  width: 100%;
+  font-size: 11px;
+}
+@media (max-width: 760px) {
+  .pet-setup-layout {
+    grid-template-columns: 1fr;
+  }
+}
 .import-row {
   display: flex;
   align-items: center;

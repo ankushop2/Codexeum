@@ -224,7 +224,9 @@ export default function App() {
   }
 
   return (
-    <main className={`game-shell ${step === 2 ? "battle-mode" : ""}`}>
+    <main
+      className={`game-shell ${step === 0 ? "pet-setup" : step === 2 ? "battle-mode" : ""}`}
+    >
       <header className="masthead">
         <span className="tiny">HUMAN + PET / PLAYER 01</span>
         <span className="tiny">LONDON • 2026</span>
@@ -253,303 +255,312 @@ export default function App() {
           </span>
         ))}
       </nav>
-      <section className="console">
-        <div className="screen-heading">
-          <span>
-            ▶{" "}
-            {step === 0
-              ? "CHOOSE YOUR COMPANION"
-              : step === 1
-                ? "CHOOSE YOUR SPECIALTY"
-                : "LINK BATTLE"}
-          </span>
-          <span>LV. 01</span>
-        </div>
-        <div className="screen">
-          <div className="screen-grid" />
-          {step === 0 ? (
-            <>
-              <div className="pet-name">
-                <button aria-label="Previous pet" onClick={() => cycle(-1)}>
-                  ◀
-                </button>
-                <h2>{pet.name || "NAME YOUR PET"}</h2>
-                <button aria-label="Next pet" onClick={() => cycle(1)}>
-                  ▶
-                </button>
-              </div>
-              <div className="pet-stage">
-                <div className="platform" />
-                {pet.image ? (
-                  <div
-                    className="imported-pet"
-                    role="img"
-                    aria-label={pet.name}
-                    style={
-                      {
-                        backgroundImage: `url("${pet.image}")`,
-                        backgroundSize: `${columns * 100}% ${rows * 100}%`,
-                        "--frames": columns,
-                        "--last-frame":
-                          columns === 8 && (rows === 9 || rows === 11)
-                            ? `${(6 / 7) * 100}%`
-                            : columns > 1
-                              ? "100%"
-                              : "0%",
-                        animation:
-                          columns > 1
-                            ? `sprite-play 1s steps(${columns === 8 && (rows === 9 || rows === 11) ? 6 : columns - 1}) infinite`
-                            : "none",
-                      } as CSSProperties
-                    }
-                  />
-                ) : (
-                  <div
-                    className="pixel-pet"
-                    style={{ "--pet-color": pet.color } as CSSProperties}
-                  >
-                    <div className="pixel-ear left" />
-                    <div className="pixel-ear right" />
-                    <div className="pixel-body">
-                      <i />
-                      <i />
-                      <b />
+      <div className={step === 0 ? "pet-setup-layout" : undefined}>
+        <section className="console">
+          <div className="screen-heading">
+            <span>
+              ▶{" "}
+              {step === 0
+                ? "CHOOSE YOUR COMPANION"
+                : step === 1
+                  ? "CHOOSE YOUR SPECIALTY"
+                  : "LINK BATTLE"}
+            </span>
+            <span>LV. 01</span>
+          </div>
+          <div className="screen">
+            <div className="screen-grid" />
+            {step === 0 ? (
+              <>
+                <div className="pet-name">
+                  <button aria-label="Previous pet" onClick={() => cycle(-1)}>
+                    ◀
+                  </button>
+                  <h2>{pet.name || "NAME YOUR PET"}</h2>
+                  <button aria-label="Next pet" onClick={() => cycle(1)}>
+                    ▶
+                  </button>
+                </div>
+                <div className="pet-stage">
+                  <div className="platform" />
+                  {pet.image ? (
+                    <div
+                      className="imported-pet"
+                      role="img"
+                      aria-label={pet.name}
+                      style={
+                        {
+                          backgroundImage: `url("${pet.image}")`,
+                          backgroundSize: `${columns * 100}% ${rows * 100}%`,
+                          "--frames": columns,
+                          "--last-frame":
+                            columns === 8 && (rows === 9 || rows === 11)
+                              ? `${(6 / 7) * 100}%`
+                              : columns > 1
+                                ? "100%"
+                                : "0%",
+                          animation:
+                            columns > 1
+                              ? `sprite-play 1s steps(${columns === 8 && (rows === 9 || rows === 11) ? 6 : columns - 1}) infinite`
+                              : "none",
+                        } as CSSProperties
+                      }
+                    />
+                  ) : (
+                    <div
+                      className="pixel-pet"
+                      style={{ "--pet-color": pet.color } as CSSProperties}
+                    >
+                      <div className="pixel-ear left" />
+                      <div className="pixel-ear right" />
+                      <div className="pixel-body">
+                        <i />
+                        <i />
+                        <b />
+                      </div>
+                      <div className="pixel-foot left" />
+                      <div className="pixel-foot right" />
                     </div>
-                    <div className="pixel-foot left" />
-                    <div className="pixel-foot right" />
+                  )}
+                  <span className="sparkle one">✦</span>
+                  <span className="sparkle two">+</span>
+                </div>
+                <div className="pet-meta">
+                  <span>
+                    {pet.image ? "IMPORTED COMPANION" : "ORIGINAL STARTER PET"}
+                  </span>
+                  <span>
+                    {String(index + 1).padStart(2, "0")} /{" "}
+                    {String(pets.length).padStart(2, "0")}
+                  </span>
+                </div>
+              </>
+            ) : step === 1 ? (
+              <div className="skill-screen">
+                <h2>Pick your power.</h2>
+                <p>Your pet’s specialty for the battle.</p>
+                {skillError ? (
+                  <p role="alert">
+                    Waiting for the backend. Retrying automatically… Start both
+                    services with pnpm dev.
+                  </p>
+                ) : !skills.length ? (
+                  <p role="status">Loading skills…</p>
+                ) : (
+                  <div className="skill-grid">
+                    {skills.map((skill) => (
+                      <button
+                        key={skill.id}
+                        className={selected === skill.id ? "selected" : ""}
+                        aria-pressed={selected === skill.id}
+                        onClick={() => {
+                          setSelected(skill.id);
+                        }}
+                      >
+                        <span>{skill.symbol}</span>
+                        {skill.name}
+                      </button>
+                    ))}
                   </div>
                 )}
-                <span className="sparkle one">✦</span>
-                <span className="sparkle two">+</span>
-              </div>
-              <div className="pet-meta">
-                <span>
-                  {pet.image ? "IMPORTED COMPANION" : "ORIGINAL STARTER PET"}
-                </span>
-                <span>
-                  {String(index + 1).padStart(2, "0")} /{" "}
-                  {String(pets.length).padStart(2, "0")}
-                </span>
-              </div>
-            </>
-          ) : step === 1 ? (
-            <div className="skill-screen">
-              <h2>Pick your power.</h2>
-              <p>Your pet’s specialty for the battle.</p>
-              {skillError ? (
-                <p role="alert">
-                  Waiting for the backend. Retrying automatically… Start both
-                  services with pnpm dev.
+                <p className="random-skill">
+                  ? + ONE SHARED RANDOM CATEGORY AT MATCH TIME
                 </p>
-              ) : !skills.length ? (
-                <p role="status">Loading skills…</p>
-              ) : (
-                <div className="skill-grid">
-                  {skills.map((skill) => (
-                    <button
-                      key={skill.id}
-                      className={selected === skill.id ? "selected" : ""}
-                      aria-pressed={selected === skill.id}
-                      onClick={() => {
-                        setSelected(skill.id);
-                      }}
-                    >
-                      <span>{skill.symbol}</span>
-                      {skill.name}
-                    </button>
-                  ))}
-                </div>
-              )}
-              <p className="random-skill">
-                ? + ONE SHARED RANDOM CATEGORY AT MATCH TIME
-              </p>
-            </div>
-          ) : (
-            <GameRoom
-              category={selected}
-              nickname={nickname}
-              petName={pet.name}
-              pet={pet}
-              columns={columns}
-              rows={rows}
-              onBack={() => setStep(1)}
-            />
-          )}
-        </div>
-        <div className="dialogue">
-          <span className="dialogue-icon">✳</span>
-          <p>
-            {step === 0
-              ? "Your battle begins here, trainer! Choose your partner or bring your own Codex pet into the arena."
-              : step === 1
-                ? "Your pet has your back! Pick a specialty, answer for 5 points, or call on your pet for help and earn 2."
-                : "Share a room code with your rival. Five questions, thirty seconds each. Both players ready up, then start when the questions are ready!"}
-            <span className="cursor">▼</span>
-          </p>
-        </div>
-      </section>
-      <section className="controls">
-        {step === 0 ? (
-          <>
-            <div className="import-row">
-              <button
-                className="retro-button secondary"
-                onClick={() => folderInput.current?.click()}
-              >
-                ↑ CHOOSE PET FOLDER
-              </button>
-              <span>CHOOSE THE FOLDER CONTAINING YOUR PET</span>
-              <input
-                hidden
-                ref={(input) => {
-                  folderInput.current = input;
-                  input?.setAttribute("webkitdirectory", "");
-                }}
-                type="file"
-                multiple
-                onChange={importPet}
-              />
-              <input
-                hidden
-                ref={fileInput}
-                type="file"
-                accept="image/png,image/webp,image/gif,.json,application/json"
-                multiple
-                onChange={importPet}
-              />
-            </div>
-            <button
-              className="text-button import-files"
-              onClick={() => fileInput.current?.click()}
-            >
-              Or select image and metadata files
-            </button>
-            <details className="import-help">
-              <summary>Where’s my Codex pet?</summary>
-              <p>
-                Choose the folder containing <code>spritesheet.png</code> and{" "}
-                <code>pet-record.json</code>. The game reads the name and
-                animation layout automatically. If your pet is stored elsewhere,
-                select the image and metadata files instead. A small portrait
-                and name are shared with your opponent when you join a room; the
-                original files stay on your device.
-              </p>
-            </details>
-            {pet.image && (
-              <div className="sprite-controls">
-                <span>SPRITE SHEET?</span>
-                <label>
-                  Columns{" "}
-                  <input
-                    type="number"
-                    min="1"
-                    max="32"
-                    value={columns}
-                    onChange={(event) =>
-                      setColumns(
-                        Math.max(
-                          1,
-                          Math.min(32, Number(event.target.value) || 1),
-                        ),
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  Rows{" "}
-                  <input
-                    type="number"
-                    min="1"
-                    max="32"
-                    value={rows}
-                    onChange={(event) =>
-                      setRows(
-                        Math.max(
-                          1,
-                          Math.min(32, Number(event.target.value) || 1),
-                        ),
-                      )
-                    }
-                  />
-                </label>
-                <small>
-                  {columns === 8 && (rows === 9 || rows === 11)
-                    ? "Codex pet sheet detected: playing six idle frames."
-                    : "Preview plays the first row. Adjust the grid for sprite sheets."}
-                </small>
               </div>
-            )}
-            {pet.image && (
-              <label className="nickname-label" htmlFor="pet-name">
-                PET NAME
-                <input
-                  id="pet-name"
-                  placeholder="e.g. Bitwick"
-                  maxLength={20}
-                  value={pet.name}
-                  onChange={(event) => {
-                    const name = event.target.value.toUpperCase();
-                    setPets((current) =>
-                      current.map((item, i) =>
-                        i === index ? { ...item, name } : item,
-                      ),
-                    );
-                  }}
-                />
-              </label>
-            )}
-            <label className="nickname-label" htmlFor="nickname">
-              TRAINER NAME
-              <input
-                id="nickname"
-                placeholder="Your nickname…"
-                maxLength={20}
-                value={nickname}
-                onChange={(event) => setNickname(event.target.value)}
-                autoComplete="nickname"
+            ) : (
+              <GameRoom
+                category={selected}
+                nickname={nickname}
+                petName={pet.name}
+                pet={pet}
+                columns={columns}
+                rows={rows}
+                onBack={() => setStep(1)}
               />
-            </label>
-            {error && (
-              <p role="alert" className="error">
-                {error}
-              </p>
-            )}
-            <button
-              className="retro-button primary"
-              disabled={!nickname.trim() || !pet.name.trim()}
-              onClick={() => {
-                setNickname(nickname.trim());
-                setPets((current) =>
-                  current.map((item, i) =>
-                    i === index ? { ...item, name: item.name.trim() } : item,
-                  ),
-                );
-                setStep(1);
-              }}
-            >
-              I CHOOSE YOU! <span>→</span>
-            </button>
-          </>
-        ) : step === 1 ? (
-          <div className="step-actions">
-            <button
-              className="retro-button secondary"
-              onClick={() => setStep(step - 1)}
-            >
-              ← BACK
-            </button>
-            {step === 1 && (
-              <button
-                className="retro-button primary"
-                disabled={!skills.length}
-                onClick={() => setStep(2)}
-              >
-                READY UP →
-              </button>
             )}
           </div>
-        ) : null}
-      </section>
+          <div className="dialogue">
+            <span className="dialogue-icon">✳</span>
+            <p>
+              {step === 0
+                ? "Your battle begins here, trainer! Choose your partner or bring your own Codex pet into the arena."
+                : step === 1
+                  ? "Your pet has your back! Pick a specialty, answer for 5 points, or call on your pet for help and earn 2."
+                  : "Share a room code with your rival. Five questions, thirty seconds each. Both players ready up, then start when the questions are ready!"}
+              <span className="cursor">▼</span>
+            </p>
+          </div>
+        </section>
+        <section className="controls">
+          {step === 0 ? (
+            <>
+              <div className="codex-import-heading">
+                <span>BRING YOUR CODEX COMPANION</span>
+                <h2>Your pet. Your adventure.</h2>
+                <p>
+                  Bring the pet you created in Codex into the arena. We’ll read
+                  its name and sprite sheet for you.
+                </p>
+              </div>
+              <div className="import-row">
+                <button
+                  className="retro-button primary"
+                  onClick={() => folderInput.current?.click()}
+                >
+                  ↑ IMPORT YOUR CODEX PET
+                </button>
+                <input
+                  hidden
+                  ref={(input) => {
+                    folderInput.current = input;
+                    input?.setAttribute("webkitdirectory", "");
+                  }}
+                  type="file"
+                  multiple
+                  onChange={importPet}
+                />
+                <input
+                  hidden
+                  ref={fileInput}
+                  type="file"
+                  accept="image/png,image/webp,image/gif,.json,application/json"
+                  multiple
+                  onChange={importPet}
+                />
+              </div>
+              <details className="import-help">
+                <summary>Where’s my Codex pet?</summary>
+                <button
+                  className="text-button import-files"
+                  onClick={() => fileInput.current?.click()}
+                >
+                  Select image and metadata files instead
+                </button>
+                <p>
+                  Choose the folder containing <code>spritesheet.png</code> and{" "}
+                  <code>pet-record.json</code>. The game reads the name and
+                  animation layout automatically. If your pet is stored
+                  elsewhere, select the image and metadata files instead. A
+                  small portrait and name are shared with your opponent when you
+                  join a room; the original files stay on your device.
+                </p>
+              </details>
+              {pet.image && (
+                <div className="sprite-controls">
+                  <span>SPRITE SHEET?</span>
+                  <label>
+                    Columns{" "}
+                    <input
+                      type="number"
+                      min="1"
+                      max="32"
+                      value={columns}
+                      onChange={(event) =>
+                        setColumns(
+                          Math.max(
+                            1,
+                            Math.min(32, Number(event.target.value) || 1),
+                          ),
+                        )
+                      }
+                    />
+                  </label>
+                  <label>
+                    Rows{" "}
+                    <input
+                      type="number"
+                      min="1"
+                      max="32"
+                      value={rows}
+                      onChange={(event) =>
+                        setRows(
+                          Math.max(
+                            1,
+                            Math.min(32, Number(event.target.value) || 1),
+                          ),
+                        )
+                      }
+                    />
+                  </label>
+                  <small>
+                    {columns === 8 && (rows === 9 || rows === 11)
+                      ? "Codex pet sheet detected: playing six idle frames."
+                      : "Preview plays the first row. Adjust the grid for sprite sheets."}
+                  </small>
+                </div>
+              )}
+              {pet.image && (
+                <label className="nickname-label" htmlFor="pet-name">
+                  PET NAME
+                  <input
+                    id="pet-name"
+                    placeholder="e.g. Bitwick"
+                    maxLength={20}
+                    value={pet.name}
+                    onChange={(event) => {
+                      const name = event.target.value.toUpperCase();
+                      setPets((current) =>
+                        current.map((item, i) =>
+                          i === index ? { ...item, name } : item,
+                        ),
+                      );
+                    }}
+                  />
+                </label>
+              )}
+              <label className="nickname-label" htmlFor="nickname">
+                TRAINER NAME
+                <input
+                  id="nickname"
+                  placeholder="Your nickname…"
+                  maxLength={20}
+                  value={nickname}
+                  onChange={(event) => setNickname(event.target.value)}
+                  autoComplete="nickname"
+                />
+              </label>
+              {error && (
+                <p role="alert" className="error">
+                  {error}
+                </p>
+              )}
+              <button
+                className="retro-button primary"
+                disabled={!nickname.trim() || !pet.name.trim()}
+                onClick={() => {
+                  setNickname(nickname.trim());
+                  setPets((current) =>
+                    current.map((item, i) =>
+                      i === index ? { ...item, name: item.name.trim() } : item,
+                    ),
+                  );
+                  setStep(1);
+                }}
+              >
+                I CHOOSE YOU! <span>→</span>
+              </button>
+            </>
+          ) : step === 1 ? (
+            <div className="step-actions">
+              <button
+                className="retro-button secondary"
+                onClick={() => setStep(step - 1)}
+              >
+                ← BACK
+              </button>
+              {step === 1 && (
+                <button
+                  className="retro-button primary"
+                  disabled={!skills.length}
+                  onClick={() => setStep(2)}
+                >
+                  READY UP →
+                </button>
+              )}
+            </div>
+          ) : null}
+        </section>
+      </div>
       <footer>
         <span>5 ROUNDS. 2 PETS. 1 WINNER.</span>
         <ConnectionIndicator />
