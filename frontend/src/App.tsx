@@ -118,10 +118,43 @@ export default function App() {
     [],
   );
 
-  function importPet(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
+  async function importPet(event: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files || []);
     event.target.value = "";
-    if (!file) return;
+    if (!files.length) return;
+    const images = files.filter((file) =>
+      ["image/png", "image/webp", "image/gif"].includes(file.type),
+    );
+    const metadata = files.find(
+      (file) => file.name.toLowerCase() === "pet-record.json",
+    );
+    if (images.length !== 1) {
+      setError("Select one pet image and optionally pet-record.json together.");
+      return;
+    }
+    const file = images[0];
+    let petName = "";
+    if (metadata) {
+      try {
+        if (metadata.size > 65536) throw new Error();
+        const record: unknown = JSON.parse(await metadata.text());
+        if (
+          typeof record !== "object" ||
+          record === null ||
+          !("name" in record) ||
+          typeof record.name !== "string" ||
+          !record.name.trim() ||
+          record.name.trim().length > 20
+        )
+          throw new Error();
+        petName = record.name.trim().toUpperCase();
+      } catch {
+        setError(
+          "Could not read a valid pet name from pet-record.json (maximum 20 characters).",
+        );
+        return;
+      }
+    }
     if (
       !["image/png", "image/webp", "image/gif"].includes(file.type) ||
       file.size > 5 * 1024 * 1024
@@ -142,12 +175,13 @@ export default function App() {
         ...current,
         {
           name:
-            file.name.replace(/\.[^.]+$/, "").toLowerCase() === "spritesheet"
+            petName ||
+            (file.name.replace(/\.[^.]+$/, "").toLowerCase() === "spritesheet"
               ? ""
               : file.name
                   .replace(/\.[^.]+$/, "")
                   .slice(0, 20)
-                  .toUpperCase(),
+                  .toUpperCase()),
           color: "#aaa0e8",
           image: url,
           columns: importedColumns,
@@ -348,12 +382,13 @@ export default function App() {
               >
                 ↑ IMPORT PET
               </button>
-              <span>PNG / WEBP / GIF · MAX 5 MB</span>
+              <span>SELECT IMAGE + PET-RECORD.JSON · MAX 5 MB</span>
               <input
                 hidden
                 ref={fileInput}
                 type="file"
-                accept="image/png,image/webp,image/gif"
+                accept="image/png,image/webp,image/gif,.json,application/json"
+                multiple
                 onChange={importPet}
               />
             </div>
@@ -362,9 +397,10 @@ export default function App() {
               <p>
                 On your Mac, use Finder → Go → Go to Folder and enter{" "}
                 <code>~/.codex/pets/</code>. If your custom pet has an image or
-                sprite sheet there, import that file. Built-in pets may be
-                bundled with the app rather than in this folder. You can also
-                use your own pet artwork. The image stays in this browser tab.
+                sprite sheet there, select it together with pet-record.json to
+                load its name automatically. Built-in pets may be bundled with
+                the app rather than in this folder. You can also use your own
+                pet artwork. The image stays in this browser tab.
               </p>
             </details>
             {pet.image && (
