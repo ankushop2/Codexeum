@@ -827,7 +827,7 @@ export default function GameRoom({
                         </div>
                         {game.question.difficulty === "hard" && (
                           <p className="challenge-label">
-                            ✦ CHALLENGE QUESTION · Ask your pet to eliminate two
+                            ✦ A-LEVEL CHALLENGE · Ask your pet to eliminate two
                             options
                           </p>
                         )}

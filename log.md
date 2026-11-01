@@ -25,6 +25,6 @@ Round effects last three seconds and do not block answers or change server deadl
 Reduced-motion users see static round feedback instead of movement.
 Battle intro lasts three seconds before the first 30-second question begins.
 Imported sprites use six idle-row frames for the intro; single images and starter pets slide in.
-Each player category has one hard and one standard question; the random question is standard.
+All five questions target UK A-level difficulty, including the random category.
 Pet help on hard questions uses the OpenAI Decisions API to eliminate exactly two wrong options.
 Hard-question help remains optional; player skill cannot be guaranteed by question generation.

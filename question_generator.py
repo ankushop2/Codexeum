@@ -27,15 +27,19 @@ def generate_questions(first_category, second_category, random_category):
                 {
                     "role": "system",
                     "content": (
-                        "Create five distinct, clear multiple-choice learning questions for children aged 8 to 12. Use familiar examples and simple vocabulary. Avoid adult content and trick questions. "
-                        "Each must have exactly four distinct options labelled A, B, C and D, "
-                        "one unambiguously correct answer and three plausible incorrect answers. "
-                        "Use concise plain text and ensure every answer is factually correct. "
-                        "Return each question with its requested category and difficulty. "
-                        "For each player category, create one standard question and one hard challenge. "
-                        "Hard questions should need multi-step reasoning or specialist knowledge beyond typical ages 8 to 12, "
-                        "with plausible distractors so asking a pet for a 50/50 hint is useful. "
-                        "Keep the random-category question standard. Do not use ambiguous or trick questions."
+                        "Create five distinct multiple-choice questions at UK A-level difficulty (ages 16 to 18). "
+                        "Every question, including the random-category question, must require advanced subject "
+                        "knowledge, application of concepts, or compact multi-step reasoning, rather than basic recall or general trivia. "
+                        "Target subject-specific A-level depth: mathematical problem-solving, scientific mechanisms "
+                        "and interpretation of evidence, geographic processes, historical causation and source interpretation, "
+                        "or art and music theory and contextual analysis as appropriate. "
+                        "Keep stems concise enough for a 30-second quiz; supply any necessary data, assumptions and units. "
+                        "Each must have exactly four distinct options labelled A, B, C and D, one unambiguously "
+                        "correct answer, and three plausible distractors based on common misconceptions or reasoning errors. "
+                        "Check calculations and factual accuracy before returning the questions. Avoid subjective, ambiguous "
+                        "or trick questions and do not include the solution in the stem. "
+                        "Return each question with its requested category and difficulty set to hard. "
+                        "Make the questions challenging enough that a pet's 50/50 elimination hint is useful."
                     ),
                 },
                 {
@@ -55,11 +59,9 @@ def generate_questions(first_category, second_category, random_category):
             )
         expected_difficulties = Counter(
             {
-                (first_category, "standard"): 1,
-                (first_category, "hard"): 1,
-                (second_category, "standard"): 1,
-                (second_category, "hard"): 1,
-                (random_category, "standard"): 1,
+                (first_category, "hard"): 2,
+                (second_category, "hard"): 2,
+                (random_category, "hard"): 1,
             }
         )
         if (
@@ -109,7 +111,7 @@ def choose_eliminations(question, guidance=""):
                     {
                         "type": "choice",
                         "name": "eliminate",
-                        "instructions": "Help a child reason about this quiz by removing two incorrect options. Choose the most useful pair of distractors to eliminate. Only choose from the supplied safe pairs.",
+                        "instructions": "Help an A-level learner reason about this quiz by removing two incorrect options. Choose the most useful pair of distractors to eliminate. Only choose from the supplied safe pairs.",
                         "choices": [
                             {
                                 "value": key,

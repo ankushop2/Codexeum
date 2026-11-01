@@ -15,7 +15,7 @@ from test_game import MemoryStore
 def sample():
     return {
         "category": "maths",
-        "difficulty": "standard",
+        "difficulty": "hard",
         "question": "What is 1 + 1?",
         "options": [
             {"id": "A", "text": "1"},
@@ -47,7 +47,7 @@ def test_generator_requests_five_questions(monkeypatch, sample):
                 **sample,
                 "category": category,
                 "question": f"Question {i}",
-                "difficulty": "hard" if i in (1, 3) else "standard",
+                "difficulty": "hard",
             }
         )
         for i, category in enumerate(categories)
@@ -57,6 +57,10 @@ def test_generator_requests_five_questions(monkeypatch, sample):
     result = question_generator.generate_questions("maths", "geography", "art")
     assert [q["category"] for q in result] == categories
     assert all(q["answer"] == 1 for q in result)
+    assert all(q["difficulty"] == "hard" for q in result)
+    prompt = client.responses.parse.call_args.kwargs["input"][0]["content"]
+    assert "UK A-level" in prompt
+    assert "random-category question" in prompt
     assert client.responses.parse.call_args.kwargs["text_format"] is QuestionSet
     with pytest.raises(question_generator.GenerationError):
         question_generator.generate_questions("maths", "geography", "biology")
