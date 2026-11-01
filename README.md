@@ -103,7 +103,7 @@ Set `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` to an Upstash Redis 
 
 Set `OPENAI_API_KEY` and optionally `OPENAI_MODEL` (default `gpt-4o-mini`) on the server. Questions are generated when the second player joins; the 10-second timer begins after generation. Generated answers can still be factually wrong. Scores become visible when each round resolves.
 
-Round deadlines and `server_time` are Unix timestamps in seconds. Show a local countdown using their difference; the server rejects late answers. A poll or other request resolves an expired round and starts the next one. `history` reports correctness for each player, with `null` for a timeout. `winner` is a zero-based player index or `null` for a draw. Player tokens are credentials and should be kept private. The frontend consumes these endpoints from the Ready Up screen. It polls once per second and calculates a countdown from server time. Player tokens are saved in sessionStorage for reconnection in the same tab; do not share tokens. Nicknames and imported pet artwork remain local and are not transmitted to the opponent. Leaving a room locally does not cancel or pause the backend match.
+Round deadlines and `server_time` are Unix timestamps in seconds. Show a local countdown using their difference; the server rejects late answers. A poll or other request resolves an expired round and starts the next one. `history` reports correctness for each player, with `null` for a timeout. `winner` is a zero-based player index or `null` for a draw. Player tokens are credentials and should be kept private. The frontend consumes these endpoints from the Ready Up screen. It polls once per second and calculates a countdown from server time. Player tokens are saved in sessionStorage for reconnection in the same tab; do not share tokens. Trainer names and selected pet appearances are shared with the room opponent. Imported artwork is cropped to the first sprite-sheet frame and resized to a maximum 128×128 PNG portrait before being sent; original files are not uploaded. Portraits are stored with the expiring game record. Leaving a room locally does not cancel or pause the backend match.
 
 Run backend tests with `uv run python -m unittest -v`.
 
@@ -115,5 +115,6 @@ Run backend tests with `uv run python -m unittest -v`.
 - Answer choices lock while submitting, after answering, or when the countdown expires.
 - The round log distinguishes hits, misses, and timeouts. The results screen supports starting another match.
 - Storage outages, invalid room codes, category conflicts, and expired sessions show API errors.
+- Gameplay uses a facing-pet arena on the left with the question and choices on the right; narrow screens stack the panels. Starter pets have a rear silhouette for the local player. Imported portraits are mirrored for the rival and do not generate new rear-view artwork.
 - The bottom green indicator confirms only API health, not Redis readiness.
 - The Docker image includes both app.py and game.py.

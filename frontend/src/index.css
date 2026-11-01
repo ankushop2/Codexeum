@@ -870,3 +870,272 @@ footer {
     font-size: 6px;
   }
 }
+.game-shell.battle-mode {
+  max-width: 1160px;
+}
+.battle-mode .screen {
+  overflow: visible;
+}
+.battle-mode .console > .dialogue {
+  display: none;
+}
+.battle-mode .room-panel {
+  padding: 20px;
+}
+.battle-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+  margin: 20px 0;
+}
+.battle-display {
+  border: 3px solid #354936;
+  background: #edf0df;
+  min-width: 0;
+}
+.battle-field {
+  height: 340px;
+  position: relative;
+  overflow: hidden;
+  background: repeating-linear-gradient(0deg, #e7eadf 0 3px, #eff0e9 3px 6px);
+}
+.arena-platform {
+  position: absolute;
+  height: 58px;
+  border-radius: 50%;
+  background: #c8cfac;
+  border: 4px solid #dce0c9;
+  box-shadow: inset 0 9px 0 #b9c394;
+}
+.enemy-platform {
+  width: 43%;
+  right: 1%;
+  top: 115px;
+}
+.own-platform {
+  width: 48%;
+  left: -4%;
+  bottom: 9px;
+}
+.fighter-card {
+  position: absolute;
+  background: #f7f4d9;
+  border: 3px solid #43513b;
+  box-shadow: 3px 3px 0 #9aa583;
+  padding: 12px;
+  width: 52%;
+  z-index: 3;
+  border-radius: 2px 12px 2px 12px;
+  font-size: 10px;
+}
+.fighter-card > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 8px;
+}
+.fighter-card strong {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.fighter-card > span {
+  font-size: 9px;
+  color: #58634b;
+  display: block;
+  margin: 5px 0;
+  overflow-wrap: anywhere;
+}
+.enemy-card {
+  left: 10px;
+  top: 14px;
+}
+.own-card {
+  right: 10px;
+  bottom: 22px;
+}
+.power-line {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 9px;
+}
+.power-track {
+  height: 7px;
+  background: #85ab70;
+  flex: 1;
+  border: 1px solid #43513b;
+}
+.enemy-position {
+  position: absolute;
+  right: 10%;
+  top: 25px;
+  z-index: 2;
+}
+.own-position {
+  position: absolute;
+  left: 9%;
+  bottom: 8px;
+  z-index: 2;
+}
+.battle-creature {
+  width: 135px;
+  height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  image-rendering: pixelated;
+}
+.battle-creature.front {
+  transform: scaleX(-1);
+}
+.battle-creature.rear {
+  transform: scale(1.2) rotate(-5deg);
+}
+.battle-creature img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.battle-creature .pixel-pet {
+  transform: rotate(6deg);
+}
+.battle-creature.rear .pixel-body i,
+.battle-creature.rear .pixel-body b {
+  display: none;
+}
+.back-mark {
+  display: none;
+}
+.rear .back-mark {
+  display: block;
+  position: absolute;
+  left: 30px;
+  top: 12px;
+  width: 35px;
+  height: 50px;
+  background: #0002;
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% 20%,
+    70% 20%,
+    70% 40%,
+    100% 40%,
+    100% 60%,
+    70% 60%,
+    70% 80%,
+    100% 80%,
+    100% 100%,
+    0 100%
+  );
+}
+.battle-narration {
+  padding: 18px;
+  background: #fcf9e9;
+  border-top: 4px solid #43513b;
+  box-shadow: inset 0 0 0 4px #d7dcc1;
+  min-height: 100px;
+  overflow-wrap: anywhere;
+}
+.battle-narration strong {
+  font-size: 12px;
+}
+.battle-narration p {
+  margin: 8px 0 0;
+  font-size: 12px;
+}
+.battle-question-panel {
+  padding: 18px;
+  border: 3px solid #52644c;
+  background: #edf0d9;
+  min-width: 0;
+}
+.battle-question-panel .question {
+  font-family: "Space Mono", monospace;
+  font-size: 18px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.battle-question-panel .answer-options button {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.portrait-notice {
+  font-size: 10px;
+  color: #526346;
+}
+.battle-mode .room-panel > .room-loadout,
+.battle-mode .room-panel > .join-room {
+  max-width: 600px;
+}
+.battle-mode .room-panel > .primary {
+  max-width: 600px;
+}
+.battle-mode .round-history {
+  margin-top: 10px;
+}
+.battle-mode .title {
+  margin-block: 24px;
+}
+@media (max-width: 800px) {
+  .battle-layout {
+    grid-template-columns: 1fr;
+  }
+  .battle-field {
+    height: 310px;
+  }
+  .battle-mode .room-panel {
+    padding: 12px;
+  }
+  .fighter-card {
+    padding: 10px;
+  }
+  .fighter-card strong {
+    font-size: 11px;
+  }
+  .battle-question-panel {
+    padding: 15px;
+  }
+  .own-position {
+    left: 6%;
+  }
+  .enemy-position {
+    right: 6%;
+  }
+  .battle-mode .title {
+    margin-block: 25px;
+  }
+}
+@media (max-width: 400px) {
+  .battle-field {
+    height: 300px;
+  }
+  .fighter-card {
+    width: 57%;
+  }
+  .fighter-card > div:first-child > span {
+    font-size: 7px;
+  }
+  .battle-creature {
+    width: 115px;
+    height: 130px;
+  }
+  .enemy-position {
+    right: 2%;
+    top: 52px;
+  }
+  .own-position {
+    left: 2%;
+  }
+  .own-card {
+    bottom: 12px;
+    right: 6px;
+  }
+  .enemy-card {
+    left: 6px;
+    top: 12px;
+  }
+}

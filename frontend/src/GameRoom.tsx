@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
+import BattleArena from "./BattleArena";
+import type { BattlePet, Fighter } from "./BattleArena";
 
 type Session = { code: string; token: string };
 type Game = {
   code: string;
   phase: "waiting" | "playing" | "finished";
-  players: { category: string; score: number }[];
+  players: Fighter[];
   you: number;
   server_time: number;
   round?: number;
@@ -65,11 +67,17 @@ export default function GameRoom({
   category,
   nickname,
   petName,
+  pet,
+  columns,
+  rows,
   onBack,
 }: {
   category: string;
   nickname: string;
   petName: string;
+  pet: BattlePet;
+  columns: number;
+  rows: number;
   onBack: () => void;
 }) {
   const [session, setSession] = useState<Session | null>(restoreSession);
@@ -167,6 +175,38 @@ export default function GameRoom({
     return () => clearInterval(timer);
   }, []);
 
+  async function portrait(): Promise<BattlePet> {
+    if (!pet.image) return { name: pet.name, color: pet.color };
+    const image = new Image();
+    image.src = pet.image;
+    await image.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = 128;
+    canvas.height = 128;
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Unable to prepare pet portrait.");
+    context.imageSmoothingEnabled = false;
+    const width = image.naturalWidth / columns;
+    const height = image.naturalHeight / rows;
+    const scale = Math.min(128 / width, 128 / height);
+    context.drawImage(
+      image,
+      0,
+      0,
+      width,
+      height,
+      (128 - width * scale) / 2,
+      (128 - height * scale) / 2,
+      width * scale,
+      height * scale,
+    );
+    return {
+      name: pet.name,
+      color: pet.color,
+      image: canvas.toDataURL("image/png"),
+    };
+  }
+
   async function enter(join: boolean) {
     if (submitting.current) return;
     submitting.current = true;
@@ -175,7 +215,13 @@ export default function GameRoom({
     try {
       const next = await api<Session>(
         join ? `/${code.trim().toUpperCase()}/join` : "",
-        { method: "POST", body: JSON.stringify({ category }) },
+        {
+          method: "POST",
+          body: JSON.stringify({
+            category,
+            profile: { nickname, pet: await portrait() },
+          }),
+        },
       );
       setFatal(false);
       setGame(null);
@@ -251,6 +297,10 @@ export default function GameRoom({
             </strong>
             <span>SPECIALTY: {category.toUpperCase()}</span>
           </div>
+          <p className="portrait-notice">
+            Your trainer name and a small pet portrait are shared with your room
+            opponent.
+          </p>
           <p>
             Create a room and share its code, or join your rival. Choose
             different specialties.
@@ -318,77 +368,86 @@ export default function GameRoom({
           )}
           {game && game.phase !== "waiting" && (
             <>
-              <div className="battle-score">
-                <div>
-                  <span>YOU · {mine?.category}</span>
-                  <strong>{mine?.score} PTS</strong>
-                </div>
-                <span>VS</span>
-                <div>
-                  <span>RIVAL · {rival?.category}</span>
-                  <strong>{rival?.score} PTS</strong>
+              <div className="battle-layout">
+                <BattleArena
+                  mine={mine}
+                  rival={rival}
+                  pet={pet}
+                  nickname={nickname}
+                  message={
+                    game.phase === "finished"
+                      ? "The battle is over. Check your final score!"
+                      : game.answered
+                        ? "Move locked in. Waiting for the rival…"
+                        : remaining === 0
+                          ? "Time’s up! Resolving the round…"
+                          : "Choose an answer to power your next move!"
+                  }
+                />
+                <div className="battle-question-panel">
+                  {game.phase === "playing" && game.question && (
+                    <>
+                      <div className="round-heading">
+                        <span>
+                          ROUND {game.round} / 5 ·{" "}
+                          {game.question.category.toUpperCase()}
+                        </span>
+                        <strong role="timer" aria-label="Seconds remaining">
+                          {remaining}s
+                        </strong>
+                      </div>
+                      <h2 className="question">{game.question.prompt}</h2>
+                      <div className="answer-options">
+                        {game.question.options.map((option, index) => (
+                          <button
+                            key={`${game.round}-${index}`}
+                            className="retro-button secondary"
+                            disabled={
+                              busy || game.answered || remaining === 0 || fatal
+                            }
+                            onClick={() => void answer(index)}
+                          >
+                            <span>{String.fromCharCode(65 + index)}.</span>{" "}
+                            {option}
+                          </button>
+                        ))}
+                      </div>
+                      <p role="status">
+                        {game.answered
+                          ? "Answer locked. Waiting for your rival or the timer…"
+                          : remaining === 0
+                            ? "Time’s up. Resolving the round…"
+                            : busy
+                              ? "Sending your answer…"
+                              : "Choose your answer before time runs out."}
+                      </p>
+                      <p className="scoring-note">
+                        Correct: 2 points in your specialty, 5 in another. Human
+                        answers only for now; Codex is not connected.
+                      </p>
+                    </>
+                  )}
+                  {game.phase === "finished" && (
+                    <div className="match-result">
+                      <span>✦</span>
+                      <h2>
+                        {game.winner === null
+                          ? "IT’S A DRAW!"
+                          : game.winner === game.you
+                            ? "YOU WIN!"
+                            : "RIVAL WINS!"}
+                      </h2>
+                      <p>
+                        Five rounds complete. Final score: {mine?.score} –{" "}
+                        {rival?.score}.
+                      </p>
+                      <button className="retro-button primary" onClick={leave}>
+                        PLAY AGAIN →
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
-              {game.phase === "playing" && game.question && (
-                <>
-                  <div className="round-heading">
-                    <span>
-                      ROUND {game.round} / 5 ·{" "}
-                      {game.question.category.toUpperCase()}
-                    </span>
-                    <strong role="timer" aria-label="Seconds remaining">
-                      {remaining}s
-                    </strong>
-                  </div>
-                  <h2 className="question">{game.question.prompt}</h2>
-                  <div className="answer-options">
-                    {game.question.options.map((option, index) => (
-                      <button
-                        key={`${game.round}-${index}`}
-                        className="retro-button secondary"
-                        disabled={
-                          busy || game.answered || remaining === 0 || fatal
-                        }
-                        onClick={() => void answer(index)}
-                      >
-                        <span>{String.fromCharCode(65 + index)}.</span> {option}
-                      </button>
-                    ))}
-                  </div>
-                  <p role="status">
-                    {game.answered
-                      ? "Answer locked. Waiting for your rival or the timer…"
-                      : remaining === 0
-                        ? "Time’s up. Resolving the round…"
-                        : busy
-                          ? "Sending your answer…"
-                          : "Choose your answer before time runs out."}
-                  </p>
-                  <p className="scoring-note">
-                    Correct: 2 points in your specialty, 5 in another. Human
-                    answers only for now; Codex is not connected.
-                  </p>
-                </>
-              )}
-              {game.phase === "finished" && (
-                <div className="match-result">
-                  <span>✦</span>
-                  <h2>
-                    {game.winner === null
-                      ? "IT’S A DRAW!"
-                      : game.winner === game.you
-                        ? "YOU WIN!"
-                        : "RIVAL WINS!"}
-                  </h2>
-                  <p>
-                    Five rounds complete. Final score: {mine?.score} –{" "}
-                    {rival?.score}.
-                  </p>
-                  <button className="retro-button primary" onClick={leave}>
-                    PLAY AGAIN →
-                  </button>
-                </div>
-              )}
               {game.history.length > 0 && (
                 <div className="round-history">
                   <h3>ROUND LOG</h3>

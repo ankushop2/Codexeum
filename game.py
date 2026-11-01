@@ -1,3 +1,7 @@
+import base64
+import binascii
+import re
+import struct
 import json
 import os
 import secrets
@@ -61,17 +65,70 @@ class RedisStore:
         )
 
 
-def player(category):
-    return {"token": secrets.token_urlsafe(32), "category": category, "score": 0}
+def appearance(value):
+    if value is None:
+        return {"nickname": "TRAINER", "pet": {"name": "BYTE", "color": "#aaa0e8"}}
+    if not isinstance(value, dict):
+        raise GameError("Invalid trainer appearance", 400)
+    nickname = value.get("nickname", "TRAINER")
+    pet = value.get("pet", {})
+    if (
+        not isinstance(nickname, str)
+        or not 1 <= len(nickname.strip()) <= 20
+        or not isinstance(pet, dict)
+    ):
+        raise GameError("Invalid trainer appearance", 400)
+    name, color = pet.get("name", "BYTE"), pet.get("color", "#aaa0e8")
+    if (
+        not isinstance(name, str)
+        or not 1 <= len(name) <= 20
+        or not isinstance(color, str)
+        or not re.fullmatch(r"#[0-9a-fA-F]{6}", color)
+    ):
+        raise GameError("Invalid pet appearance", 400)
+    clean = {"name": name, "color": color}
+    image = pet.get("image")
+    if image is not None:
+        if (
+            not isinstance(image, str)
+            or len(image) > 100000
+            or not image.startswith("data:image/png;base64,")
+        ):
+            raise GameError("Invalid pet portrait", 400)
+        try:
+            raw = base64.b64decode(image.split(",", 1)[1], validate=True)
+            if (
+                len(raw) < 24
+                or raw[:8] != b"\x89PNG\r\n\x1a\n"
+                or raw[12:16] != b"IHDR"
+            ):
+                raise ValueError()
+            width, height = struct.unpack(">II", raw[16:24])
+            if not 1 <= width <= 128 or not 1 <= height <= 128:
+                raise ValueError()
+        except (ValueError, binascii.Error, struct.error):
+            raise GameError("Invalid pet portrait", 400) from None
+        clean["image"] = image
+    return {"nickname": nickname.strip(), "pet": clean}
 
 
-def create_game(store, category):
+def player(category, profile=None):
+    return {
+        "token": secrets.token_urlsafe(32),
+        "category": category,
+        "score": 0,
+        **appearance(profile),
+    }
+
+
+def create_game(store, category, profile=None):
     validate_category(category)
+    profile = appearance(profile)
     for _ in range(10):
         code = "".join(
             secrets.choice("23456789ABCDEFGHJKLMNPQRSTUVWXYZ") for _ in range(6)
         )
-        first = player(category)
+        first = player(category, profile)
         game = {
             "code": code,
             "players": [first],
@@ -124,8 +181,9 @@ def update(store, code, action):
     raise GameError("Game is busy; retry", 409)
 
 
-def join_game(store, code, category):
+def join_game(store, code, category, profile=None):
     validate_category(category)
+    profile = appearance(profile)
 
     raw = store.get(code)
     if raw is None:
@@ -145,7 +203,7 @@ def join_game(store, code, category):
     def action(game, now):
         if game["phase"] != "waiting":
             raise GameError("Game is full", 409)
-        second = player(category)
+        second = player(category, profile)
         game["players"].append(second)
         game["questions"] = questions
         game["phase"] = "playing"
@@ -169,6 +227,8 @@ def view(game, now, index):
         "players": [
             {
                 "category": p["category"],
+                "nickname": p.get("nickname", "TRAINER"),
+                "pet": p.get("pet", {"name": "BYTE", "color": "#aaa0e8"}),
                 "score": p["score"]
                 - (
                     (

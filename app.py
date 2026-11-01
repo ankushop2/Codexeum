@@ -76,12 +76,14 @@ def token(request: Request):
 
 @app.post("/api/games", status_code=201)
 def create(data: Annotated[Any, Body()] = None):
-    return create_game(store, body(data).get("category"))
+    data = body(data)
+    return create_game(store, data.get("category"), data.get("profile"))
 
 
 @app.post("/api/games/{code}/join")
 def join(code: str, data: Annotated[Any, Body()] = None):
-    return join_game(store, code.upper(), body(data).get("category"))
+    data = body(data)
+    return join_game(store, code.upper(), data.get("category"), data.get("profile"))
 
 
 @app.get("/api/games/{code}")

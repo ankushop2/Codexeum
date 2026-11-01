@@ -157,7 +157,7 @@ export default function App() {
   }
 
   return (
-    <main className="game-shell">
+    <main className={`game-shell ${step === 2 ? "battle-mode" : ""}`}>
       <header className="masthead">
         <span className="tiny">HUMAN + PET / PLAYER 01</span>
         <span className="tiny">LONDON • 2026</span>
@@ -297,6 +297,9 @@ export default function App() {
               category={selected}
               nickname={nickname}
               petName={pet.name}
+              pet={pet}
+              columns={columns}
+              rows={rows}
               onBack={() => setStep(1)}
             />
           )}
