@@ -789,19 +789,25 @@ export default function GameRoom({
                               ? "Sending your answer…"
                               : "Choose your answer before time runs out."}
                       </p>
-                      <div className="pet-prompt">
+                      <div
+                        className={`pet-prompt ${game.question.category !== mine?.category && !game.answered && remaining > 0 ? "pet-help-panel" : ""}`}
+                      >
                         {game.question.category !== mine?.category &&
                           !game.answered &&
                           remaining > 0 && (
                             <>
                               <label htmlFor="pet-prompt">
-                                TALK TO {myPetName.toUpperCase()}
+                                ✦ STUCK? ASK {myPetName.toUpperCase()}!
                               </label>
+                              <p>
+                                Your learning buddy is ready to help. Ask for a
+                                clue or a suggestion.
+                              </p>
                               <textarea
                                 id="pet-prompt"
                                 value={petPrompt}
                                 maxLength={500}
-                                placeholder="Help me solve this!"
+                                placeholder={`“Give me a clue, ${myPetName}!”`}
                                 onChange={(event) =>
                                   setPetPrompt(event.target.value)
                                 }
@@ -810,18 +816,28 @@ export default function GameRoom({
                                 }
                               />
                               <button
-                                className="retro-button secondary"
+                                className="retro-button primary"
                                 disabled={
                                   petBusy ||
-                                  !petPrompt.trim() ||
                                   game.answered ||
                                   remaining === 0 ||
                                   fatal
                                 }
-                                onClick={() => void askPet(petPrompt)}
+                                onClick={() =>
+                                  void askPet(
+                                    petPrompt.trim() ||
+                                      "Help me understand this question and suggest an answer.",
+                                  )
+                                }
                               >
-                                {petBusy ? "THINKING…" : "ASK PET →"}
+                                {petBusy
+                                  ? `${myPetName.toUpperCase()} IS THINKING…`
+                                  : `GET ${myPetName.toUpperCase()}’S HELP →`}
                               </button>
+                              <p>
+                                A correct answer with pet advice earns 2 points.
+                                You choose the final answer.
+                              </p>
                             </>
                           )}
                       </div>

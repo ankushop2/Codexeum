@@ -905,6 +905,25 @@ footer {
 .pet-prompt label {
   font-size: 10px;
 }
+.pet-help-panel {
+  padding: 18px;
+  border: 3px solid #43513b;
+  background: #dce6c4;
+  box-shadow: 4px 4px 0 #87996e;
+  gap: 12px;
+}
+.pet-help-panel label {
+  font-size: 12px;
+  line-height: 1.8;
+}
+.pet-help-panel textarea {
+  min-height: 100px;
+  font-size: 15px;
+}
+.pet-help-panel textarea:focus {
+  outline: 3px solid #43513b;
+  outline-offset: 3px;
+}
 .pet-prompt textarea {
   width: 100%;
   min-height: 70px;
