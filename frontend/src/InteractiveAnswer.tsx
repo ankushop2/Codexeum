@@ -34,7 +34,7 @@ export default function InteractiveAnswer({
   if (kind === "map")
     return (
       <div>
-        <p>Tap a labelled continent to lock in your answer.</p>
+        <p>Tap a continent to lock in your answer.</p>
         <div className="quiz-map" aria-label="World continent map">
           <svg viewBox="0 0 600 300" aria-hidden="true">
             <rect width="600" height="300" fill="#c9dfe1" />
@@ -51,6 +51,7 @@ export default function InteractiveAnswer({
             <button
               key={option}
               className="map-pin"
+              aria-label={option}
               disabled={disabled || eliminated.includes(index)}
               style={{
                 left: `${places[option][0]}%`,
@@ -58,7 +59,22 @@ export default function InteractiveAnswer({
               }}
               onClick={() => onAnswer(index)}
             >
-              {option}
+              <span className="map-pin-label">{option}</span>
+              <span className="map-pin-letter" aria-hidden="true">
+                {String.fromCharCode(65 + index)}
+              </span>
+            </button>
+          ))}
+        </div>
+        <div className="map-mobile-options" aria-label="Continent answers">
+          {options.map((option, index) => (
+            <button
+              key={option}
+              className="retro-button secondary"
+              disabled={disabled || eliminated.includes(index)}
+              onClick={() => onAnswer(index)}
+            >
+              {String.fromCharCode(65 + index)}. {option}
             </button>
           ))}
         </div>

@@ -116,6 +116,7 @@ export default function GameRoom({
   const [remaining, setRemaining] = useState(0);
   const [fatal, setFatal] = useState(false);
   const [autonomous, setAutonomous] = useState(false);
+  const [planExpanded, setPlanExpanded] = useState(false);
   const [starterPrompt, setStarterPrompt] = useState(
     "Read the question carefully, compare every option, and explain your best pick in one short sentence. Ask me for help if you are unsure.",
   );
@@ -581,127 +582,152 @@ export default function GameRoom({
           ? `${rivalPetName} landed a hit! The rival's move was super effective!`
           : "Neither move landed!"
     : null;
-  return (
-    <section className="room-panel">
-      {mine?.controller !== "codex" && (
-        <section
-          className={`autopilot-panel ${autonomous ? "is-active" : ""}`}
-          aria-labelledby="autopilot-title"
+  const autopilotPanel = mine?.controller !== "codex" && (
+    <section
+      className={`autopilot-panel ${autonomous ? "is-active" : ""}`}
+      aria-labelledby="autopilot-title"
+    >
+      <div className="autopilot-heading">
+        <div>
+          <span className="autopilot-eyebrow">TRAINER CONTROL ROOM</span>
+          <h2 id="autopilot-title">Let {myPetName} take the lead</h2>
+          <p>
+            Give your pet a game plan. Watch it think, then steer its next move.
+          </p>
+        </div>
+        <span className="autopilot-badge" role="status">
+          {autonomous ? "● AUTOPILOT ON" : "○ YOU’RE IN CONTROL"}
+        </span>
+      </div>
+      <button
+        type="button"
+        className="text-button autopilot-plan-toggle"
+        aria-expanded={planExpanded}
+        aria-controls="autopilot-plan"
+        onClick={() => setPlanExpanded(!planExpanded)}
+      >
+        {planExpanded
+          ? "HIDE GAME PLAN ↑"
+          : "EDIT STARTING PROMPT + STRATEGIES ↓"}
+      </button>
+      <div className={`autopilot-layout ${planExpanded ? "" : "is-compact"}`}>
+        <div
+          className="autopilot-brief"
+          id="autopilot-plan"
+          hidden={!planExpanded}
         >
-          <div className="autopilot-heading">
-            <div>
-              <span className="autopilot-eyebrow">TRAINER CONTROL ROOM</span>
-              <h2 id="autopilot-title">Let {myPetName} take the lead</h2>
-              <p>
-                Give your pet a game plan. Watch it think, then steer its next
-                move.
-              </p>
-            </div>
-            <span className="autopilot-badge" role="status">
-              {autonomous ? "● AUTOPILOT ON" : "○ YOU’RE IN CONTROL"}
-            </span>
-          </div>
-          <div className="autopilot-layout">
-            <div className="autopilot-brief">
-              <label htmlFor="starter-prompt">
-                YOUR PET’S STARTING INSTRUCTIONS
-              </label>
-              <textarea
-                id="starter-prompt"
-                value={starterPrompt}
-                maxLength={200}
-                rows={3}
-                onChange={(event) => {
-                  setStarterPrompt(event.target.value);
+          <label htmlFor="starter-prompt">
+            YOUR PET’S STARTING INSTRUCTIONS
+          </label>
+          <textarea
+            id="starter-prompt"
+            value={starterPrompt}
+            maxLength={200}
+            rows={3}
+            onChange={(event) => {
+              setStarterPrompt(event.target.value);
+              setAutonomous(false);
+            }}
+            placeholder="How should your pet approach each question?"
+            aria-describedby="starter-prompt-help"
+          />
+          <p id="starter-prompt-help">
+            Used every round. Editing pauses autopilot; start again to apply
+            your new plan.
+          </p>
+          <div
+            className="autopilot-suggestions"
+            aria-label="Suggested multiple-choice techniques"
+          >
+            {[
+              [
+                "Rule out wrong answers",
+                "Compare all options. Rule out choices that contradict the question, then explain the best remaining answer briefly.",
+              ],
+              [
+                "Find the key clue",
+                "Look for the key clue in the question. Watch for words like NOT, EXCEPT, always and never. Use the clue to compare every option.",
+              ],
+              [
+                "Work it out first",
+                "Work out the answer before looking at the options. Then match your result to the closest correct choice. Check units and calculations.",
+              ],
+              [
+                "Ask when unsure",
+                "Compare every option carefully. If two choices still seem plausible, ask me for a useful clue instead of guessing.",
+              ],
+            ].map(([label, prompt]) => (
+              <button
+                key={label}
+                type="button"
+                className="autopilot-chip"
+                aria-pressed={starterPrompt === prompt}
+                onClick={() => {
+                  setStarterPrompt(prompt);
                   setAutonomous(false);
                 }}
-                placeholder="How should your pet approach each question?"
-                aria-describedby="starter-prompt-help"
-              />
-              <p id="starter-prompt-help">
-                Used every round. Editing pauses autopilot; start again to apply
-                your new plan.
-              </p>
-              <div
-                className="autopilot-suggestions"
-                aria-label="Suggested multiple-choice techniques"
               >
-                {[
-                  [
-                    "Rule out wrong answers",
-                    "Compare all options. Rule out choices that contradict the question, then explain the best remaining answer briefly.",
-                  ],
-                  [
-                    "Find the key clue",
-                    "Look for the key clue in the question. Watch for words like NOT, EXCEPT, always and never. Use the clue to compare every option.",
-                  ],
-                  [
-                    "Work it out first",
-                    "Work out the answer before looking at the options. Then match your result to the closest correct choice. Check units and calculations.",
-                  ],
-                  [
-                    "Ask when unsure",
-                    "Compare every option carefully. If two choices still seem plausible, ask me for a useful clue instead of guessing.",
-                  ],
-                ].map(([label, prompt]) => (
-                  <button
-                    key={label}
-                    type="button"
-                    className="autopilot-chip"
-                    aria-pressed={starterPrompt === prompt}
-                    onClick={() => {
-                      setStarterPrompt(prompt);
-                      setAutonomous(false);
-                    }}
-                  >
-                    {label} ↗
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="autopilot-controls">
-              <ol>
-                <li>Pet proposes a pick.</li>
-                <li>You get 5 seconds to steer.</li>
-                <li>Pet submits · 2 points if correct.</li>
-              </ol>
-              <button
-                type="button"
-                className={`retro-button ${autonomous ? "secondary" : "primary"}`}
-                aria-pressed={autonomous}
-                disabled={game?.phase === "finished" || fatal}
-                onClick={() => {
-                  if (autonomous) {
-                    setAutonomous(false);
-                    return;
-                  }
-                  petRequest.current += 1;
-                  petAttempt.current = "";
-                  setPetBusy(false);
-                  setPetReply(null);
-                  setActivePrompt(starterPrompt.trim());
-                  setAutonomous(true);
-                }}
-              >
-                {autonomous ? "Ⅱ PAUSE AUTOPILOT" : "▶ START PET AUTOPILOT"}
+                {label} ↗
               </button>
-              <p className="autopilot-status" role="status" aria-live="polite">
-                {!autonomous
-                  ? "Answer yourself for 5 points, or let your pet play."
-                  : petPrompt.trim()
-                    ? "Paused while you write. Send your guidance to continue."
-                    : autoCountdown !== null
-                      ? `Pet’s pick locks in ${autoCountdown}s. Type below to steer!`
-                      : petBusy
-                        ? `${myPetName} is considering the options…`
-                        : petReply?.round === game?.round && petReply?.needsHelp
-                          ? "Your pet needs a clue. Guide it below or pick an answer."
-                          : "Ready for the next question. Keep this tab open."}
-              </p>
-            </div>
+            ))}
           </div>
-        </section>
+        </div>
+        <div className="autopilot-controls">
+          <ol>
+            <li>Pet proposes a pick.</li>
+            <li>You get 5 seconds to steer.</li>
+            <li>Pet submits · 2 points if correct.</li>
+          </ol>
+          <button
+            type="button"
+            className={`retro-button ${autonomous ? "secondary" : "primary"}`}
+            aria-pressed={autonomous}
+            disabled={game?.phase === "finished" || fatal}
+            onClick={() => {
+              if (autonomous) {
+                setAutonomous(false);
+                return;
+              }
+              petRequest.current += 1;
+              petAttempt.current = "";
+              setPetBusy(false);
+              setPetReply(null);
+              setActivePrompt(starterPrompt.trim());
+              setAutonomous(true);
+              setPlanExpanded(false);
+            }}
+          >
+            {autonomous ? "Ⅱ PAUSE AUTOPILOT" : "▶ START PET AUTOPILOT"}
+          </button>
+          <p className="autopilot-status" role="status" aria-live="polite">
+            {!autonomous
+              ? "Answer yourself for 5 points, or let your pet play."
+              : petPrompt.trim()
+                ? "Paused while you write. Send your guidance to continue."
+                : autoCountdown !== null
+                  ? `Pet’s pick locks in ${autoCountdown}s. Type below to steer!`
+                  : petBusy
+                    ? `${myPetName} is considering the options…`
+                    : petReply?.round === game?.round && petReply?.needsHelp
+                      ? "Your pet needs a clue. Guide it below or pick an answer."
+                      : "Ready for the next question. Keep this tab open."}
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+  return (
+    <section
+      className={`room-panel ${game?.phase === "playing" ? "is-playing" : ""}`}
+    >
+      {error && (
+        <p role="alert" className="error">
+          {error}
+        </p>
       )}
+      {game?.phase !== "playing" &&
+        game?.phase !== "finished" &&
+        autopilotPanel}
       {!session ? (
         <>
           <div className="room-loadout">
@@ -860,8 +886,8 @@ export default function GameRoom({
             </button>
           </form>
           <p className="scoring-note">
-            Back yourself for 5 points. Get your pet’s help for 2. You always
-            choose the final answer.
+            Back yourself for 5 points. Get your pet’s help for 2. You can
+            always take over when your pet is playing.
           </p>
           <button className="text-button" disabled={busy} onClick={onBack}>
             ← Change specialty
@@ -1021,6 +1047,19 @@ export default function GameRoom({
                     )}
                     {game.phase === "playing" && game.question && (
                       <>
+                        <div
+                          className="mobile-battle-score"
+                          aria-label="Current battle score"
+                        >
+                          <span>
+                            <strong>{myPetName}</strong>
+                            <b>{mine?.score ?? 0} pts</b>
+                          </span>
+                          <span>
+                            <strong>{rivalPetName}</strong>
+                            <b>{rival?.score ?? 0} pts</b>
+                          </span>
+                        </div>
                         <div className="round-heading">
                           <span>
                             ROUND {game.round} / 5 ·{" "}
@@ -1061,6 +1100,12 @@ export default function GameRoom({
                                 </p>
                               )}
                               <p>{petReply.text.replace(/\*\*|__|`/g, "")}</p>
+                              {autonomous && autoCountdown !== null && (
+                                <p role="status">
+                                  Locks in {autoCountdown}s. Type guidance below
+                                  to pause.
+                                </p>
+                              )}
                               <p>
                                 {(game.eliminated || []).length > 0
                                   ? "Two wrong options eliminated. A correct answer with help earns 2 points."
@@ -1205,6 +1250,7 @@ export default function GameRoom({
                         <p className="scoring-note">
                           Correct: 5 points on your own, 2 with your pet’s help.
                         </p>
+                        {autopilotPanel}
                       </>
                     )}
                     {game.phase === "finished" && (
@@ -1280,11 +1326,6 @@ export default function GameRoom({
             </p>
           )}
         </>
-      )}
-      {error && (
-        <p role="alert" className="error">
-          {error}
-        </p>
       )}
       {game?.phase === "finished" && (
         <ResultsModal
