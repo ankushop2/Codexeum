@@ -25,10 +25,12 @@ Round effects last three seconds and do not block answers or change server deadl
 Reduced-motion users see static round feedback instead of movement.
 Battle intro lasts three seconds before the first 60-second question begins.
 Imported sprites use six idle-row frames for the intro; single images and starter pets slide in.
-All five questions target UK A-level difficulty, including the random category.
-Pet help on hard questions uses the OpenAI Decisions API to eliminate exactly two wrong options.
-Hard-question help remains optional; player skill cannot be guaranteed by question generation.
+The host selects easy, med or hard question difficulty for all five questions; default med (assumed).
+Pet help on multiple-choice questions uses the OpenAI Decisions API to eliminate exactly two wrong options.
+Pet help remains optional.
 Ready players wait for their opponent; retry preparation is shown only after generation fails or times out.
-The A-level question banner is hidden; question difficulty remains unchanged.
+Question difficulty is shown in the lobby without a question banner.
 Imported pet grids are detected automatically; manual sprite rows/columns controls and detection hints are hidden.
 Question text renders fenced code with indentation; escaped structural line breaks are normalized while quoted code escapes stay intact.
+All players share one category pool, including Code for Python, JavaScript and debugging.
+Bot difficulty and question difficulty are separate choices.

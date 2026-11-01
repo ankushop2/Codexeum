@@ -12,7 +12,7 @@ import question_generator
 from test_game import MemoryStore, start_playing
 
 
-def challenges(first, second, other):
+def challenges(first, second, other, difficulty="med"):
     return [
         {
             "category": category,

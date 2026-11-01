@@ -12,7 +12,16 @@ from .agent import CodexError, CodexPlayer
 from .api import ArenaClient, ArenaError
 from .pets import Pet, draw_pet, pet_from_player
 
-CATEGORIES = ("geography", "art", "maths", "biology", "history", "music", "science")
+CATEGORIES = (
+    "geography",
+    "art",
+    "maths",
+    "biology",
+    "history",
+    "music",
+    "science",
+    "code",
+)
 
 
 class ArenaApp(App):
@@ -66,6 +75,7 @@ class ArenaApp(App):
         model=None,
         client=None,
         agent=None,
+        question_difficulty="med",
     ):
         super().__init__()
         self.target, self.url = target, url
@@ -75,6 +85,7 @@ class ArenaApp(App):
         self.agent = agent or CodexPlayer(model)
         self.game = None
         self.connected = False
+        self.question_difficulty = question_difficulty
         self.auto = True
         self.thinking = False
         self.busy = False
@@ -104,6 +115,13 @@ class ArenaApp(App):
                 value=self.category,
                 allow_blank=False,
                 id="category",
+            )
+            yield Label("QUESTION DIFFICULTY (host chooses)")
+            yield Select(
+                [("EASY", "easy"), ("MEDIUM", "med"), ("HARD", "hard")],
+                value=self.question_difficulty,
+                allow_blank=False,
+                id="question-difficulty",
             )
             yield Button("ENTER ARENA →", id="connect", variant="success")
         with Vertical(id="battle", classes="hidden"):
@@ -176,6 +194,7 @@ class ArenaApp(App):
                 self.category,
                 {"nickname": nickname, "pet": self.pet.payload()},
                 self.bot,
+                str(self.query_one("#question-difficulty", Select).value),
             )
             self.connected = True
             self.query_one("#setup").add_class("hidden")

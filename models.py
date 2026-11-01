@@ -10,9 +10,7 @@ Category = Literal[
     "history",
     "music",
     "science",
-    "python",
-    "javascript",
-    "debugging",
+    "code",
 ]
 OptionId = Literal["A", "B", "C", "D"]
 
@@ -24,7 +22,7 @@ class Option(BaseModel):
 
 class GeneratedQuestion(BaseModel):
     category: Category
-    difficulty: Literal["hard"]
+    difficulty: Literal["easy", "med", "hard"]
     question: str
     options: list[Option]
     correct_answer: OptionId

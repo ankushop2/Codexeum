@@ -37,53 +37,40 @@ def test_invalid_generated_questions(sample):
         GeneratedQuestion(**sample)
 
 
-def test_generator_requests_five_questions(monkeypatch, sample):
+@pytest.mark.parametrize("difficulty", ["easy", "med", "hard"])
+def test_generator_requests_five_questions(monkeypatch, sample, difficulty):
     monkeypatch.setenv("OPENAI_API_KEY", "test")
     client = Mock()
-    categories = ["maths", "maths", "geography", "geography", "art"]
+    categories = ["maths", "maths", "code", "code", "art"]
     questions = [
         GeneratedQuestion(
             **{
                 **sample,
                 "category": category,
                 "question": f"Question {i}",
-                "difficulty": "hard",
+                "difficulty": difficulty,
             }
         )
         for i, category in enumerate(categories)
     ]
     client.responses.parse.return_value.output_parsed = QuestionSet(questions=questions)
     monkeypatch.setattr(question_generator, "OpenAI", lambda **kwargs: client)
-    result = question_generator.generate_questions("maths", "geography", "art")
+    result = question_generator.generate_questions("maths", "code", "art", difficulty)
     assert [q["category"] for q in result] == categories
-    assert all(q["answer"] == 1 for q in result if q["category"] != "geography")
-    continents = {
-        "Kenya": "Africa",
-        "Brazil": "South America",
-        "France": "Europe",
-        "Japan": "Asia",
-        "Canada": "North America",
-        "Australia": "Oceania",
-    }
-    for question in result:
-        if question["category"] == "geography":
-            assert question["kind"] == "map"
-            country = (
-                question["prompt"]
-                .removeprefix("Tap the continent where ")
-                .removesuffix(" is located.")
-            )
-            assert question["options"][question["answer"]] == continents[country]
-    assert all(q["difficulty"] == "hard" for q in result)
-    prompt = client.responses.parse.call_args.kwargs["input"][0]["content"]
-    assert "UK A-level" in prompt
-    assert "random-category question" in prompt
-    assert client.responses.parse.call_args.kwargs["text_format"] is QuestionSet
+    assert all(q["answer"] == 1 and q["difficulty"] == difficulty for q in result)
+    request = client.responses.parse.call_args.kwargs
+    assert f"Difficulty: {difficulty}" in request["input"][1]["content"]
+    assert (
+        question_generator.DIFFICULTY_PROMPTS[difficulty]
+        in request["input"][0]["content"]
+    )
+    assert "A-level" not in request["input"][0]["content"]
+    assert request["text_format"] is QuestionSet
     with pytest.raises(question_generator.GenerationError):
-        question_generator.generate_questions("maths", "geography", "biology")
-    questions[1].difficulty = "standard"
+        question_generator.generate_questions("maths", "code", "biology", difficulty)
+    questions[1].difficulty = "hard" if difficulty != "hard" else "easy"
     with pytest.raises(question_generator.GenerationError):
-        question_generator.generate_questions("maths", "geography", "art")
+        question_generator.generate_questions("maths", "code", "art", difficulty)
 
 
 def test_join_generation_failure_leaves_room_waiting(monkeypatch):

@@ -1102,31 +1102,6 @@ footer {
   font-size: 13px;
   line-height: 1.8;
 }
-.homepage-audiences {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-top: 18px;
-}
-.homepage-audiences article {
-  padding: 18px;
-  border: 2px solid #87996e;
-  background: #f7f4d9;
-}
-.homepage-audiences span {
-  font-size: 9px;
-  line-height: 1.8;
-}
-.homepage-audiences h3 {
-  font-size: 13px;
-  line-height: 1.8;
-  margin: 12px 0;
-}
-@media (max-width: 760px) {
-  .homepage-audiences {
-    grid-template-columns: 1fr;
-  }
-}
 .league-navigation .retro-button {
   font-size: 10px;
   margin: 0;

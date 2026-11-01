@@ -11,6 +11,7 @@ type Session = { code: string; token: string };
 type Game = {
   code: string;
   preparation_failed: boolean;
+  question_difficulty: "easy" | "med" | "hard";
   bot_difficulty?: "easy" | "med" | "hard";
   phase: "waiting" | "generating" | "ready" | "intro" | "playing" | "finished";
   players: (Fighter & { ready: boolean; bot: boolean; controller?: string })[];
@@ -24,7 +25,7 @@ type Game = {
     category: string;
     prompt: string;
     options: string[];
-    difficulty: "standard" | "hard";
+    difficulty: "standard" | "easy" | "med" | "hard";
     kind?: "map" | "order";
   };
   answered?: boolean;
@@ -109,6 +110,9 @@ export default function GameRoom({
   const [opponent, setOpponent] = useState<"player" | "bot">("player");
   const [roomAction, setRoomAction] = useState<"create" | "join">("create");
   const [difficulty, setDifficulty] = useState<"easy" | "med" | "hard">("med");
+  const [questionDifficulty, setQuestionDifficulty] = useState<
+    "easy" | "med" | "hard"
+  >("med");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -288,6 +292,7 @@ export default function GameRoom({
           body: JSON.stringify({
             category,
             mode,
+            ...(!join ? { question_difficulty: questionDifficulty } : {}),
             ...(mode === "bot" ? { difficulty } : {}),
             profile: { nickname, pet: await portrait() },
           }),
@@ -428,7 +433,7 @@ export default function GameRoom({
       game.answered ||
       !game.question ||
       game.players[game.you]?.controller === "codex" ||
-      game.question.difficulty === "hard" ||
+      game.question.difficulty !== "standard" ||
       game.question.category === game.players[game.you]?.category ||
       remaining > 15 ||
       remaining === 0
@@ -661,6 +666,35 @@ export default function GameRoom({
                 </div>
               </fieldset>
             )}
+            {(opponent === "bot" || roomAction === "create") && (
+              <fieldset className="setup-choice setup-details" disabled={busy}>
+                <legend>QUESTION DIFFICULTY</legend>
+                <div className="setup-options">
+                  {(["easy", "med", "hard"] as const).map((level) => (
+                    <label
+                      key={level}
+                      className={questionDifficulty === level ? "selected" : ""}
+                    >
+                      <input
+                        type="radio"
+                        name="question-difficulty"
+                        value={level}
+                        checked={questionDifficulty === level}
+                        onChange={() => setQuestionDifficulty(level)}
+                      />
+                      {level === "med"
+                        ? "Medium"
+                        : level === "easy"
+                          ? "Easy"
+                          : "Hard"}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            )}
+            {opponent === "player" && roomAction === "join" && (
+              <p>The host chooses the question difficulty.</p>
+            )}
             <button
               type="submit"
               className="retro-button primary"
@@ -790,7 +824,13 @@ export default function GameRoom({
                     : game.bot_difficulty}
                 </p>
               )}
-              <p>Five rounds · 60 seconds per question.</p>
+              <p>
+                Question difficulty:{" "}
+                {game.question_difficulty === "med"
+                  ? "Medium"
+                  : game.question_difficulty}{" "}
+                · Five rounds · 60 seconds per question.
+              </p>
               {canRetryPreparation && (
                 <p role="status">
                   Question preparation failed or timed out. Try again.
@@ -966,10 +1006,10 @@ export default function GameRoom({
                                 : "Choose your answer before time runs out."}
                         </p>
                         <div
-                          className={`pet-prompt ${(game.question.category !== mine?.category || game.question.difficulty === "hard") && !game.answered && remaining > 0 ? "pet-help-panel" : ""}`}
+                          className={`pet-prompt ${(game.question.category !== mine?.category || game.question.difficulty !== "standard") && !game.answered && remaining > 0 ? "pet-help-panel" : ""}`}
                         >
                           {(game.question.category !== mine?.category ||
-                            game.question.difficulty === "hard") &&
+                            game.question.difficulty !== "standard") &&
                             !game.answered &&
                             remaining > 0 && (
                               <>
@@ -977,7 +1017,7 @@ export default function GameRoom({
                                   ✦ ASK {myPetName.toUpperCase()}!
                                 </label>
                                 <p>
-                                  {game.question.difficulty === "hard"
+                                  {game.question.difficulty !== "standard"
                                     ? "Ask your pet for a 50/50 hint: two wrong options will be eliminated."
                                     : "Your learning buddy is ready to help. Ask for a clue or a suggestion."}
                                 </p>

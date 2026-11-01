@@ -9,7 +9,7 @@ import game
 from test_game import MemoryStore, start_playing
 
 
-def questions(first, second, other):
+def questions(first, second, other, difficulty="med"):
     return [
         {
             "category": category,

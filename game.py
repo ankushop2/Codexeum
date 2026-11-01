@@ -11,17 +11,17 @@ from urllib.request import Request, urlopen
 
 from question_generator import GenerationError, generate_questions
 
-CATEGORIES = ("geography", "art", "maths", "biology", "history", "music", "science")
-ADULT_CATEGORIES = ("python", "javascript", "debugging")
-CATEGORIES = CATEGORIES + ADULT_CATEGORIES
-
-
-def category_pool(category):
-    return (
-        ADULT_CATEGORIES
-        if category in ADULT_CATEGORIES
-        else tuple(c for c in CATEGORIES if c not in ADULT_CATEGORIES)
-    )
+CATEGORIES = (
+    "geography",
+    "art",
+    "maths",
+    "biology",
+    "history",
+    "music",
+    "science",
+    "code",
+)
+QUESTION_DIFFICULTIES = ("easy", "med", "hard")
 
 
 BOT_DIFFICULTIES = {"easy": 2, "med": 3, "hard": 4}
@@ -165,7 +165,20 @@ return 1
 
     def progress(self, nickname):
         raw = self.command("HGET", "arena:profiles", nickname.strip().casefold())
-        return json.loads(raw).get("subjects", {}) if raw else {}
+        subjects = json.loads(raw).get("subjects", {}) if raw else {}
+        coding = ("code", "python", "javascript", "debugging")
+        combined = {
+            key: sum(subjects.get(category, {}).get(key, 0) for category in coding)
+            for key in ("attempts", "correct")
+        }
+        return {
+            **{
+                category: counts
+                for category, counts in subjects.items()
+                if category not in coding
+            },
+            "code": combined,
+        }
 
     def leaderboard(self):
         names = self.command("ZREVRANGE", "arena:leaders", 0, 19)
@@ -256,7 +269,19 @@ def player(category, profile=None):
     }
 
 
-def create_game(store, category, profile=None, mode="player", difficulty="med"):
+def create_game(
+    store,
+    category,
+    profile=None,
+    mode="player",
+    difficulty="med",
+    question_difficulty="med",
+):
+    if (
+        not isinstance(question_difficulty, str)
+        or question_difficulty not in QUESTION_DIFFICULTIES
+    ):
+        raise GameError("Invalid question difficulty; choose easy, med or hard", 400)
     if mode not in ("player", "bot"):
         raise GameError("Invalid game mode", 400)
     if mode == "bot" and (
@@ -277,10 +302,11 @@ def create_game(store, category, profile=None, mode="player", difficulty="med"):
             "round": 0,
             "answers": {},
             "history": [],
+            "question_difficulty": question_difficulty,
         }
         if mode == "bot":
             opponent = player(
-                secrets.choice([c for c in category_pool(category) if c != category]),
+                secrets.choice([c for c in CATEGORIES if c != category]),
                 {"nickname": "BOT", "pet": {"name": "GLITCH", "color": "#9bc6a1"}},
             )
             opponent.update(bot=True, ready=True)
@@ -354,8 +380,6 @@ def join_game(store, code, category, profile=None):
             raise GameError("Game is full", 409)
         if game["players"][0]["category"] == category:
             raise GameError("Choose a different category", 400)
-        if category not in category_pool(game["players"][0]["category"]):
-            raise GameError("Choose the same learning mode as your opponent", 400)
         second = player(category, profile)
         game["players"].append(second)
         return lambda game, now: {"code": code, "token": second["token"]}
@@ -388,10 +412,10 @@ def ready_game(store, code, token):
         return view(snapshot, time.time(), index)
     try:
         first, second = [p["category"] for p in snapshot["players"]]
-        other = secrets.choice(
-            [c for c in category_pool(first) if c not in (first, second)]
+        other = secrets.choice([c for c in CATEGORIES if c not in (first, second)])
+        questions = generate_questions(
+            first, second, other, snapshot.get("question_difficulty", "med")
         )
-        questions = generate_questions(first, second, other)
         secrets.SystemRandom().shuffle(questions)
     except (GenerationError, StoreUnavailable):
 
@@ -485,6 +509,7 @@ def view(game, now, index):
     result = {
         "code": game["code"],
         "phase": game["phase"],
+        "question_difficulty": game.get("question_difficulty", "med"),
         "preparation_failed": game["phase"] == "waiting"
         and game.get("preparation_failed", bool(game.get("generation"))),
         "players": [
@@ -600,7 +625,7 @@ def eliminate_options(store, code, token, round_number, choose):
         ):
             raise GameError("Round is no longer active", 409)
         question = game["questions"][game["round"]]
-        if question.get("difficulty") != "hard":
+        if question.get("difficulty") not in QUESTION_DIFFICULTIES:
             raise GameError("This question does not support elimination", 400)
         return lambda game, now: (
             index,

@@ -19,8 +19,8 @@ from game import (
     ready_game,
     start_game,
 )
-from pairing import create_pairing, redeem_pairing
 from models import PetDecision
+from pairing import create_pairing, redeem_pairing
 from question_generator import ConfigurationError, GenerationError, choose_eliminations
 
 load_dotenv()
@@ -35,9 +35,7 @@ SKILLS = [
     {"id": "history", "name": "History", "symbol": "⌛"},
     {"id": "music", "name": "Music", "symbol": "♫"},
     {"id": "science", "name": "Science", "symbol": "⚛"},
-    {"id": "python", "name": "Python · Adults", "symbol": "Py"},
-    {"id": "javascript", "name": "JavaScript · Adults", "symbol": "JS"},
-    {"id": "debugging", "name": "Debugging · Adults", "symbol": "⌘"},
+    {"id": "code", "name": "Code", "symbol": "⌘"},
 ]
 
 
@@ -109,6 +107,7 @@ def create(data: Annotated[Any, Body()] = None):
         data.get("profile"),
         data.get("mode", "player"),
         data.get("difficulty", "med"),
+        data.get("question_difficulty", "med"),
     )
 
 
@@ -179,7 +178,7 @@ def ask_pet(code: str, request: Request, data: Annotated[Any, Body()] = None):
     ):
         raise GameError("Round is no longer active", 409)
     if (
-        game["question"].get("difficulty") == "hard"
+        game["question"].get("difficulty") in ("easy", "med", "hard")
         and game["question"].get("kind") != "order"
     ):
         eliminated = eliminate_options(

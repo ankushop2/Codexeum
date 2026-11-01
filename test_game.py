@@ -17,7 +17,7 @@ def start_playing(store, code, token):
     return started
 
 
-def generated_questions(first, second, other):
+def generated_questions(first, second, other, difficulty="med"):
     return [
         {
             "category": category,

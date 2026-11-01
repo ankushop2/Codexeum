@@ -17,7 +17,18 @@ class ConfigurationError(GenerationError):
     pass
 
 
-def generate_questions(first_category, second_category, random_category):
+DIFFICULTY_PROMPTS = {
+    "easy": "Use beginner-friendly knowledge, clear vocabulary and simple recall or one-step reasoning. Avoid obscure trivia.",
+    "med": "Require solid subject knowledge and application of concepts, with short calculations or a few reasoning steps. Avoid trivial recall and specialist-only knowledge.",
+    "hard": "Require advanced subject knowledge, challenging application or compact multi-step reasoning, with plausible distractors based on common misconceptions. Avoid ambiguous or trick questions.",
+}
+
+
+def generate_questions(
+    first_category, second_category, random_category, difficulty="med"
+):
+    if difficulty not in DIFFICULTY_PROMPTS:
+        raise GenerationError("Invalid question difficulty.")
     if not os.getenv("OPENAI_API_KEY"):
         raise ConfigurationError("OPENAI_API_KEY is not configured on the server.")
     try:
@@ -28,24 +39,19 @@ def generate_questions(first_category, second_category, random_category):
                 {
                     "role": "system",
                     "content": (
-                        "Create five distinct multiple-choice questions at UK A-level difficulty (ages 16 to 18). "
-                        "Every question, including the random-category question, must require advanced subject "
-                        "knowledge, application of concepts, or compact multi-step reasoning, rather than basic recall or general trivia. "
-                        "Target subject-specific A-level depth: mathematical problem-solving, scientific mechanisms "
-                        "and interpretation of evidence, geographic processes, historical causation and source interpretation, "
-                        "or art and music theory and contextual analysis as appropriate. "
-                        "Keep stems concise enough for a 60-second quiz; supply any necessary data, assumptions and units. "
-                        "Each must have exactly four distinct options labelled A, B, C and D, one unambiguously "
-                        "correct answer, and three plausible distractors based on common misconceptions or reasoning errors. "
-                        "Check calculations and factual accuracy before returning the questions. Avoid subjective, ambiguous "
-                        "or trick questions and do not include the solution in the stem. "
-                        "Return each question with its requested category and difficulty set to hard. "
-                        "Make the questions challenging enough that a pet's 50/50 elimination hint is useful."
+                        "Create five distinct multiple-choice quiz questions at the requested difficulty. "
+                        "Apply that difficulty to every question, including the random category. "
+                        "For Code questions, cover Python, JavaScript or debugging and clearly state the language. "
+                        "Keep stems concise enough for a 60-second quiz; supply necessary data, assumptions and units. "
+                        "Each question must have four distinct options labelled A, B, C and D, one unambiguously "
+                        "correct answer and three plausible distractors. Check calculations and factual accuracy. "
+                        "Return the requested category and difficulty label on every question. "
+                        + DIFFICULTY_PROMPTS[difficulty]
                     ),
                 },
                 {
                     "role": "user",
-                    "content": f"Create two questions in {first_category}, two in {second_category}, and one in {random_category}.",
+                    "content": f"Difficulty: {difficulty}. Create two questions in {first_category}, two in {second_category}, and one in {random_category}.",
                 },
             ],
             text_format=QuestionSet,
@@ -60,9 +66,9 @@ def generate_questions(first_category, second_category, random_category):
             )
         expected_difficulties = Counter(
             {
-                (first_category, "hard"): 2,
-                (second_category, "hard"): 2,
-                (random_category, "hard"): 1,
+                (first_category, difficulty): 2,
+                (second_category, difficulty): 2,
+                (random_category, difficulty): 1,
             }
         )
         if (
@@ -86,7 +92,7 @@ def generate_questions(first_category, second_category, random_category):
                     "answer": ord(question.correct_answer) - ord("A"),
                 }
             )
-        return interactive_questions(questions)
+        return interactive_questions(questions) if difficulty == "easy" else questions
     except (APIError, ValidationError) as exc:
         raise GenerationError("Question generation failed. Please try again.") from exc
 
@@ -112,7 +118,7 @@ def choose_eliminations(question, guidance=""):
                     {
                         "type": "choice",
                         "name": "eliminate",
-                        "instructions": "Help an A-level learner reason about this quiz by removing two incorrect options. Choose the most useful pair of distractors to eliminate. Only choose from the supplied safe pairs.",
+                        "instructions": "Help the learner reason about this quiz by removing two incorrect options. Choose the most useful pair of distractors to eliminate. Only choose from the supplied safe pairs.",
                         "choices": [
                             {
                                 "value": key,

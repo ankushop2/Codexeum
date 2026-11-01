@@ -45,7 +45,9 @@ class ArenaClient:
             )
         return result
 
-    async def enter(self, target, category, profile, bot=False):
+    async def enter(
+        self, target, category, profile, bot=False, question_difficulty="med"
+    ):
         target = target.upper()
         if target.startswith("P-"):
             if not re.fullmatch(r"P-[A-Z2-9]{10}", target):
@@ -61,6 +63,7 @@ class ArenaClient:
                     "category": category,
                     "profile": profile,
                     "mode": "bot" if bot else "player",
+                    "question_difficulty": question_difficulty,
                 },
             )
         elif re.fullmatch(r"[A-Z2-9]{6}", target):

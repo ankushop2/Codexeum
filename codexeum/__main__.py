@@ -21,7 +21,22 @@ def main():
     parser.add_argument(
         "--category",
         default="maths",
-        choices=("geography", "art", "maths", "biology", "history", "music", "science"),
+        choices=(
+            "geography",
+            "art",
+            "maths",
+            "biology",
+            "history",
+            "music",
+            "science",
+            "code",
+        ),
+    )
+    parser.add_argument(
+        "--question-difficulty",
+        choices=("easy", "med", "hard"),
+        default="med",
+        help="Question difficulty when creating a game",
     )
     parser.add_argument(
         "--pet",
@@ -45,7 +60,14 @@ def main():
     except (OSError, ValueError) as exc:
         parser.error(f"Could not load pet: {exc}")
     app = ArenaApp(
-        args.target, args.url, pet, args.nickname, args.category, args.bot, args.model
+        args.target,
+        args.url,
+        pet,
+        args.nickname,
+        args.category,
+        args.bot,
+        args.model,
+        question_difficulty=args.question_difficulty,
     )
 
     async def run():
