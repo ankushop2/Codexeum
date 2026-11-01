@@ -60,10 +60,64 @@ class RedisStore:
         return self.command("GET", "game:" + code)
 
     def replace(self, code, old, game):
+        entries = []
+        if game["phase"] == "finished" and json.loads(old)["phase"] != "finished":
+            scores = [p["score"] for p in game["players"]]
+            for p in game["players"]:
+                if not p.get("bot"):
+                    entries.append(
+                        {
+                            "key": p["nickname"].strip().casefold(),
+                            "nickname": p["nickname"],
+                            "pet": p["pet"]["name"],
+                            "score": p["score"],
+                            "win": int(
+                                p["score"] == max(scores) and scores[0] != scores[1]
+                            ),
+                        }
+                    )
+        script = """
+if redis.call('GET', KEYS[1]) ~= ARGV[1] then return 0 end
+redis.call('SET', KEYS[1], ARGV[2], 'EX', ARGV[3])
+for _, entry in ipairs(cjson.decode(ARGV[4])) do
+  local raw = redis.call('HGET', KEYS[3], entry.key)
+  local row = raw and cjson.decode(raw) or {points=0, games=0, wins=0}
+  row.nickname = entry.nickname
+  row.pet = entry.pet
+  row.points = row.points + entry.score
+  row.games = row.games + 1
+  row.wins = row.wins + entry.win
+  redis.call('HSET', KEYS[3], entry.key, cjson.encode(row))
+  redis.call('ZADD', KEYS[2], row.points, entry.key)
+end
+return 1
+"""
         return (
-            self.command("EVAL", CAS, 1, "game:" + code, old, json.dumps(game), TTL)
+            self.command(
+                "EVAL",
+                script,
+                3,
+                "game:" + code,
+                "arena:leaders",
+                "arena:profiles",
+                old,
+                json.dumps(game),
+                TTL,
+                json.dumps(entries),
+            )
             == 1
         )
+
+    def leaderboard(self):
+        names = self.command("ZREVRANGE", "arena:leaders", 0, 19)
+        if not names:
+            return []
+        records = self.command("HMGET", "arena:profiles", *names)
+        return [
+            {"rank": index + 1, **json.loads(record)}
+            for index, record in enumerate(records)
+            if record
+        ]
 
 
 def appearance(value):

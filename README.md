@@ -55,9 +55,12 @@ The arena places your pet opposite your rival, with the question beside it. On s
 | ---------------------------------------------- | ------------------------------- |
 | Starter pets and local pet-folder/image import | Richer pet animations           |
 | Room codes and two-player matches              | Persistent player profiles      |
-| Five AI-generated questions and timed rounds   | Public leaderboard              |
+| Five AI-generated questions and timed rounds   | More battle modes               |
 | Pet answers and trainer guidance               | Improved confidence calibration |
 | Scoring, round history, and results            |                                 |
+| Nickname leaderboard with pet names            |                                 |
+
+The Pet League leaderboard ranks the top 20 nicknames by total points from completed matches, with wins and games played. It appears in the lobby and after a battle. Bots are excluded. Nicknames are matched without case distinctions, and the latest pet name is displayed. With no sign-up, people using the same nickname share a record. Rankings persist in Redis beyond the room's expiry. Refresh the leaderboard to see recent results.
 
 Room updates use **polling**, rather than a socket connection. The health indicator checks the API process; it does not confirm that Redis or OpenAI credentials are configured.
 

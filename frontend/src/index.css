@@ -805,6 +805,34 @@ footer {
   padding-top: 12px;
   font-size: 9px;
 }
+.leaderboard {
+  border-top: 3px solid #43513b;
+  margin-top: 24px;
+  padding-top: 16px;
+}
+.leaderboard h3 {
+  font-size: 13px;
+}
+.leaderboard p {
+  font-size: 11px;
+}
+.leaderboard-scroll {
+  overflow-x: auto;
+}
+.leaderboard table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  text-align: left;
+}
+.leaderboard th,
+.leaderboard td {
+  padding: 10px 8px;
+  border-bottom: 1px solid #87996e;
+}
+.leaderboard .your-ranking {
+  background: #dce6c4;
+}
 .round-history h3 {
   font-size: 10px;
 }

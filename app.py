@@ -49,6 +49,13 @@ def skills():
 store = RedisStore()
 
 
+@app.get("/api/leaderboard")
+def leaderboard():
+    return JSONResponse(
+        {"players": store.leaderboard()}, headers={"Cache-Control": "no-store"}
+    )
+
+
 @app.exception_handler(GameError)
 async def game_error(request: Request, error: GameError):
     return JSONResponse({"error": error.message}, status_code=error.status)

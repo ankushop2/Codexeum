@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import BattleArena from "./BattleArena";
+import Leaderboard from "./Leaderboard";
 import type { BattlePet, Fighter } from "./BattleArena";
 
 type Session = { code: string; token: string };
@@ -746,6 +747,9 @@ export default function GameRoom({
         <p role="alert" className="error">
           {error}
         </p>
+      )}
+      {(!session || game?.phase === "finished") && (
+        <Leaderboard key={session?.code || "lobby"} nickname={nickname} />
       )}
     </section>
   );
