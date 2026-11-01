@@ -72,17 +72,37 @@ export default function App() {
   const pet = pets[index];
 
   useEffect(() => {
-    const controller = new AbortController();
-    fetch("/api/skills", { signal: controller.signal })
-      .then((response) => {
-        if (!response.ok) throw new Error();
-        return response.json();
-      })
-      .then((data) => setSkills(data.skills))
-      .catch((error) => {
-        if (error.name !== "AbortError") setSkillError(true);
-      });
-    return () => controller.abort();
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout>;
+    let controller: AbortController;
+    async function loadSkills() {
+      controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 4000);
+      try {
+        const response = await fetch("/api/skills", {
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error("API unavailable");
+        const data = await response.json();
+        if (!stopped) {
+          setSkills(data.skills);
+          setSkillError(false);
+        }
+      } catch {
+        if (!stopped) {
+          setSkillError(true);
+          timer = setTimeout(loadSkills, 3000);
+        }
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+    void loadSkills();
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+      controller?.abort();
+    };
   }, []);
 
   useEffect(
@@ -243,7 +263,8 @@ export default function App() {
               <p>Your pet’s specialty for the battle.</p>
               {skillError ? (
                 <p role="alert">
-                  Skills unavailable. Check the API connection and reload.
+                  Waiting for the backend. Retrying automatically… Start both
+                  services with pnpm dev.
                 </p>
               ) : !skills.length ? (
                 <p role="status">Loading skills…</p>
