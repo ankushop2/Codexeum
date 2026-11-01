@@ -2292,3 +2292,36 @@ footer {
     margin-top: 0;
   }
 }
+.question-code {
+  margin: 16px 0;
+  border: 2px solid #43513b;
+  background: #25392f;
+  color: #f0f1d6;
+  min-width: 0;
+}
+.code-language {
+  display: block;
+  padding: 8px 14px;
+  border-bottom: 1px solid #64765a;
+  font-size: 10px;
+  text-transform: uppercase;
+  color: #c9d6a9;
+}
+.question-code pre {
+  margin: 0;
+  padding: 16px;
+  overflow-x: auto;
+  white-space: pre;
+  font:
+    14px/1.8 "Space Mono",
+    monospace;
+  tab-size: 4;
+}
+.question-code code {
+  font: inherit;
+}
+.question-content .question code {
+  background: #dce6c4;
+  padding: 1px 4px;
+  font: inherit;
+}

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import BattleArena from "./BattleArena";
+import QuestionContent from "./QuestionContent";
 import Leaderboard from "./Leaderboard";
 import LearningProgress from "./LearningProgress";
 import InteractiveAnswer from "./InteractiveAnswer";
@@ -1029,7 +1030,7 @@ export default function GameRoom({
                             {remaining}s
                           </strong>
                         </div>
-                        <h2 className="question">{game.question.prompt}</h2>
+                        <QuestionContent text={game.question.prompt} />
                         {petBusy && (
                           <div className="pet-advice" role="status">
                             {myPetName} is thinking…

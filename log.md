@@ -31,3 +31,4 @@ Hard-question help remains optional; player skill cannot be guaranteed by questi
 Ready players wait for their opponent; retry preparation is shown only after generation fails or times out.
 The A-level question banner is hidden; question difficulty remains unchanged.
 Imported pet grids are detected automatically; manual sprite rows/columns controls and detection hints are hidden.
+Question text renders fenced code with indentation; escaped structural line breaks are normalized while quoted code escapes stay intact.
