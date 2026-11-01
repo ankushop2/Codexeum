@@ -283,7 +283,7 @@ def begin_round(game, now):
 def record_answer(game, index, answer, source="trainer"):
     question = game["questions"][game["round"]]
     correct = answer == question["answer"]
-    points = (5 if source == "team" else 2) if correct else 0
+    points = (5 if source == "trainer" else 2) if correct else 0
     game["players"][index]["score"] += points
     game["answers"][str(index)] = {
         "correct": correct,

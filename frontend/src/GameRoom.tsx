@@ -314,6 +314,7 @@ export default function GameRoom({
     if (!session || !game?.round) return;
     const round = game.round;
     const request = ++petRequest.current;
+    petAttempt.current = `${session.code}:${round}`;
     setPetBusy(true);
     setPetReply(null);
     if (prompt.trim()) setPetPrompt("");
@@ -355,43 +356,33 @@ export default function GameRoom({
   }
 
   useEffect(() => {
-    if (!session || game?.phase !== "playing" || !game.round || game.answered)
+    if (
+      !session ||
+      game?.phase !== "playing" ||
+      !game.round ||
+      game.answered ||
+      !game.question ||
+      game.question.category === game.players[game.you]?.category ||
+      remaining > 15 ||
+      remaining === 0
+    )
       return;
     const key = `${session.code}:${game.round}`;
     if (petAttempt.current === key) return;
     petAttempt.current = key;
-    setPetPrompt("");
     void askPet();
-  }, [session, game?.phase, game?.round, game?.answered]);
-
-  useEffect(() => {
-    if (
-      !game ||
-      game.phase !== "playing" ||
-      game.answered ||
-      !petReply ||
-      petReply.round !== game.round ||
-      petReply.needsHelp ||
-      petReply.answer === null ||
-      petBusy ||
-      petPrompt.trim() ||
-      remaining === 0
-    )
-      return;
-    const timer = setTimeout(
-      () => void answer(petReply.answer!, petReply.guided ? "team" : "pet"),
-      3000,
-    );
-    return () => clearTimeout(timer);
   }, [
+    session,
     game?.phase,
     game?.round,
     game?.answered,
-    petReply,
-    petBusy,
-    petPrompt,
+    remaining <= 15,
     remaining === 0,
   ]);
+
+  useEffect(() => {
+    setPetPrompt("");
+  }, [game?.round]);
 
   function leave() {
     version.current += 1;
@@ -599,7 +590,16 @@ export default function GameRoom({
                             disabled={
                               busy || game.answered || remaining === 0 || fatal
                             }
-                            onClick={() => void answer(index)}
+                            onClick={() =>
+                              void answer(
+                                index,
+                                petReply &&
+                                  petReply.round === game.round &&
+                                  petReply.answer !== null
+                                  ? "team"
+                                  : "trainer",
+                              )
+                            }
                           >
                             <span>{String.fromCharCode(65 + index)}.</span>{" "}
                             {option}
@@ -659,24 +659,20 @@ export default function GameRoom({
                             <p role="status">
                               {petReply.answer !== null && (
                                 <>
-                                  PET CHOOSES{" "}
+                                  PET SUGGESTS{" "}
                                   {String.fromCharCode(65 + petReply.answer)}
                                   .{" "}
                                 </>
                               )}
                               {petReply.text}{" "}
                               {petReply.needsHelp
-                                ? game.question.category !== mine?.category
-                                  ? "Give your pet a hint or choose an answer above!"
-                                  : "Choose an answer above to help your pet!"
-                                : petPrompt.trim()
-                                  ? "Submit your hint or clear it to let your pet answer."
-                                  : "Submitting in 3 seconds. Choose another answer to take over!"}
+                                ? "Your pet is unsure. Choose an answer above!"
+                                : "Choose your answer above!"}
                             </p>
                           )}
                       </div>
                       <p className="scoring-note">
-                        Correct: 2 points solo, 5 points with trainer guidance.
+                        Correct: 5 points on your own, 2 with your pet’s help.
                       </p>
                     </>
                   )}

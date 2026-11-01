@@ -81,7 +81,7 @@ class GameTests(unittest.TestCase):
         state = game.get_game(self.store, self.code, self.tokens[0])
         self.assertEqual(
             [p["score"] for p in state["players"]],
-            [2, 2],
+            [5, 5],
         )
         self.assertEqual(state["round"], 2)
         self.assertEqual(len(state["history"]), 1)

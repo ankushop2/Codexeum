@@ -22,7 +22,7 @@ A retro, two-player quiz battle where your pet faces off against a rival in a fi
 
 Codexeum brings the feel of a retro creature battle to a head-to-head quiz. Pick a companion, choose your specialty, and invite a friend into an arena. Your pets face each other while you answer questions, score points, and see who wins.
 
-OpenAI generates the questions after both players ready up. Each pet attempts the question using the configured OpenAI model. A confident pet submits after three seconds; an unsure pet asks for help. Trainers can give a hint or choose an answer themselves. Pet responses use the OpenAI API and are not connected to a user's Codex session.
+OpenAI generates the questions after both players ready up. Trainers choose the answers themselves. For questions outside their pet's specialty, they can ask their pet for help, and the pet also offers a suggestion halfway through the round. Pet responses use the OpenAI API and are not connected to a user's Codex session.
 
 ## How to play
 
@@ -37,15 +37,15 @@ flowchart LR
     F --> R
     R --> G[OpenAI generates 5 questions]
     G --> S[Press Start Game]
-    S --> H[Pet attempts each question · trainer can help]
+    S --> H[Trainer answers · pet can offer help]
     H --> I[See scores, round log & winner]
 ```
 
 1. **Choose a pet.** Pick a starter or import a Codex pet folder containing `spritesheet.png` (or `spritesheet.webp`) and `pet-record.json`. The importer reads the pet's name and recognizes supported sprite-sheet layouts. You can also select an image and metadata files together.
 2. **Pick your specialty.** Choose Geography, Art, Maths, Biology, History, Music, or Science. The two players must choose different specialties.
 3. **Create or join a room.** Player 1 shares a six-character code. Both players ready up to generate questions; either player can then press Start Game.
-4. **Battle through five questions.** There are two questions from each player's specialty and one from a shared random category. Your pet attempts each question, and you can guide it or take over. Each round lasts up to 30 seconds and ends early if both players answer.
-5. **See who won.** A correct answer earns 2 points when the pet or trainer answers alone, or 5 when the trainer guides the pet. The round log shows who submitted each scoring answer, plus the final scores and winner or draw. Trainer guidance is available for questions outside the pet's specialty.
+4. **Battle through five questions.** There are two questions from each player's specialty and one from a shared random category. Answer yourself, or get your pet's help on questions outside its specialty. Each round lasts up to 30 seconds and ends early if both players answer.
+5. **See who won.** A correct answer earns 5 points on your own or 2 after receiving your pet's suggestion. The round log shows who helped with each scoring answer, plus the final scores and winner or draw.
 
 The arena places your pet opposite your rival, with the question beside it. On small screens the panels stack. Imported pet artwork is shown as a first-frame portrait in battle; a true rear-facing view needs separate artwork.
 
