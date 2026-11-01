@@ -5,7 +5,13 @@ import GameRoom from "./GameRoom";
 
 type Skill = { id: string; name: string; symbol: string };
 
-type Pet = { name: string; color: string; image?: string };
+type Pet = {
+  name: string;
+  color: string;
+  image?: string;
+  columns?: number;
+  rows?: number;
+};
 const starters: Pet[] = [
   { name: "BYTE", color: "#aaa0e8" },
   { name: "PATCH", color: "#edac79" },
@@ -127,6 +133,11 @@ export default function App() {
     const image = new Image();
     image.onload = () => {
       urls.current.push(url);
+      const codexSheet =
+        image.naturalWidth === 1536 &&
+        (image.naturalHeight === 2288 || image.naturalHeight === 1872);
+      const importedColumns = codexSheet ? 8 : 1;
+      const importedRows = codexSheet ? image.naturalHeight / 208 : 1;
       setPets((current) => [
         ...current,
         {
@@ -136,11 +147,13 @@ export default function App() {
             .toUpperCase(),
           color: "#aaa0e8",
           image: url,
+          columns: importedColumns,
+          rows: importedRows,
         },
       ]);
       setIndex(pets.length);
-      setColumns(1);
-      setRows(1);
+      setColumns(importedColumns);
+      setRows(importedRows);
       setError("");
     };
     image.onerror = () => {
@@ -151,9 +164,10 @@ export default function App() {
   }
 
   function cycle(direction: number) {
-    setIndex((index + direction + pets.length) % pets.length);
-    setColumns(1);
-    setRows(1);
+    const nextIndex = (index + direction + pets.length) % pets.length;
+    setIndex(nextIndex);
+    setColumns(pets[nextIndex].columns ?? 1);
+    setRows(pets[nextIndex].rows ?? 1);
   }
 
   return (
@@ -223,10 +237,15 @@ export default function App() {
                         backgroundImage: `url("${pet.image}")`,
                         backgroundSize: `${columns * 100}% ${rows * 100}%`,
                         "--frames": columns,
-                        "--last-frame": columns > 1 ? "100%" : "0%",
+                        "--last-frame":
+                          columns === 8 && (rows === 9 || rows === 11)
+                            ? `${(6 / 7) * 100}%`
+                            : columns > 1
+                              ? "100%"
+                              : "0%",
                         animation:
                           columns > 1
-                            ? `sprite-play 1s steps(${columns - 1}) infinite`
+                            ? `sprite-play 1s steps(${columns === 8 && (rows === 9 || rows === 11) ? 6 : columns - 1}) infinite`
                             : "none",
                       } as CSSProperties
                     }
@@ -382,7 +401,11 @@ export default function App() {
                     }
                   />
                 </label>
-                <small>Preview plays the first row.</small>
+                <small>
+                  {columns === 8 && (rows === 9 || rows === 11)
+                    ? "Codex pet sheet detected: playing six idle frames."
+                    : "Preview plays the first row. Adjust the grid for sprite sheets."}
+                </small>
               </div>
             )}
             <label className="nickname-label" htmlFor="nickname">
