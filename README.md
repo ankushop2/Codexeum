@@ -26,6 +26,10 @@ OpenAI generates the questions after both players ready up. Trainers choose the 
 
 ## How to play
 
+For younger learners, question generation targets ages 8–12 with simple vocabulary. The computer opponent always selects the stored correct answer. Successful rounds trigger a pet hop and starburst, respecting reduced-motion preferences. Resolved rounds reveal the correct answer so mistakes become learning opportunities.
+
+The Learning Journey dashboard tracks correct answers and total questions by subject across completed matches under each nickname. It appears in the lobby and after a match. Earlier matches recorded before this feature do not have subject statistics. Accuracy includes assisted answers and counts missed deadlines as questions not answered correctly.
+
 ```mermaid
 flowchart LR
     A[Choose or import a pet] --> B[Enter trainer name]

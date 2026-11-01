@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import BattleArena from "./BattleArena";
 import Leaderboard from "./Leaderboard";
+import LearningProgress from "./LearningProgress";
 import type { BattlePet, Fighter } from "./BattleArena";
 
 type Session = { code: string; token: string };
@@ -18,6 +19,7 @@ type Game = {
   history: {
     round: number;
     category: string;
+    correct_answer?: string;
     answers: (boolean | null)[];
     sources?: (string | null)[];
     points?: (number | null)[];
@@ -592,6 +594,11 @@ export default function GameRoom({
             <>
               <div className="battle-layout">
                 <BattleArena
+                  roundResult={
+                    lastRound
+                      ? { round: lastRound.round, mine: myHit, rival: rivalHit }
+                      : undefined
+                  }
                   mine={mine}
                   rival={rival}
                   pet={pet}
@@ -756,6 +763,9 @@ export default function GameRoom({
                     <div key={round.round}>
                       <span>
                         {round.round}. {round.category}
+                        {round.correct_answer && (
+                          <small> · Answer: {round.correct_answer}</small>
+                        )}
                       </span>
                       <span>
                         YOU:{" "}
@@ -798,6 +808,12 @@ export default function GameRoom({
         <p role="alert" className="error">
           {error}
         </p>
+      )}
+      {(!session || game?.phase === "finished") && (
+        <LearningProgress
+          key={`progress-${session?.code || "lobby"}`}
+          nickname={nickname}
+        />
       )}
       {(!session || game?.phase === "finished") && (
         <Leaderboard key={session?.code || "lobby"} nickname={nickname} />

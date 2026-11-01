@@ -72,6 +72,21 @@ class RedisStore:
                             "nickname": p["nickname"],
                             "pet": p["pet"]["name"],
                             "score": p["score"],
+                            "subjects": {
+                                category: {
+                                    "attempts": sum(
+                                        r["category"] == category
+                                        for r in game["history"]
+                                    ),
+                                    "correct": sum(
+                                        r["category"] == category
+                                        and r["answers"][game["players"].index(p)]
+                                        is True
+                                        for r in game["history"]
+                                    ),
+                                }
+                                for category in CATEGORIES
+                            },
                             "win": int(
                                 p["score"] == max(scores) and scores[0] != scores[1]
                             ),
@@ -88,6 +103,13 @@ for _, entry in ipairs(cjson.decode(ARGV[4])) do
   row.points = row.points + entry.score
   row.games = row.games + 1
   row.wins = row.wins + entry.win
+  row.subjects = row.subjects or {}
+  for category, counts in pairs(entry.subjects) do
+    local subject = row.subjects[category] or {attempts=0, correct=0}
+    subject.attempts = subject.attempts + counts.attempts
+    subject.correct = subject.correct + counts.correct
+    row.subjects[category] = subject
+  end
   redis.call('HSET', KEYS[3], entry.key, cjson.encode(row))
   redis.call('ZADD', KEYS[2], row.points, entry.key)
 end
@@ -108,6 +130,10 @@ return 1
             )
             == 1
         )
+
+    def progress(self, nickname):
+        raw = self.command("HGET", "arena:profiles", nickname.strip().casefold())
+        return json.loads(raw).get("subjects", {}) if raw else {}
 
     def leaderboard(self):
         names = self.command("ZREVRANGE", "arena:leaders", 0, 19)
@@ -228,6 +254,9 @@ def advance(game, now):
         {
             "round": game["round"] + 1,
             "category": game["questions"][game["round"]]["category"],
+            "correct_answer": game["questions"][game["round"]]["options"][
+                game["questions"][game["round"]]["answer"]
+            ],
             "answers": [
                 game["answers"].get(str(i), {}).get("correct") for i in range(2)
             ],
@@ -340,18 +369,7 @@ def begin_round(game, now):
     if any(p.get("bot") for p in game["players"]):
         game["bot_due"] = now + 2
         question = game["questions"][game["round"]]
-        if "bot_correct_rounds" not in game:
-            game["bot_answer"] = secrets.randbelow(len(question["options"]))
-        elif game["round"] in game["bot_correct_rounds"]:
-            game["bot_answer"] = question["answer"]
-        else:
-            game["bot_answer"] = secrets.choice(
-                [
-                    index
-                    for index in range(len(question["options"]))
-                    if index != question["answer"]
-                ]
-            )
+        game["bot_answer"] = question["answer"]
 
 
 def record_answer(game, index, answer, source="trainer"):

@@ -26,7 +26,7 @@ def generate_questions(first_category, second_category, random_category):
                 {
                     "role": "system",
                     "content": (
-                        "Create five distinct, clear, moderately difficult multiple-choice quiz questions. "
+                        "Create five distinct, clear multiple-choice learning questions for children aged 8 to 12. Use familiar examples and simple vocabulary. Avoid adult content and trick questions. "
                         "Each must have exactly four distinct options labelled A, B, C and D, "
                         "one unambiguously correct answer and three plausible incorrect answers. "
                         "Use concise plain text and ensure every answer is factually correct. "

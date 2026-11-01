@@ -44,12 +44,14 @@ export default function BattleArena({
   pet,
   nickname,
   message,
+  roundResult,
 }: {
   mine?: Fighter;
   rival?: Fighter;
   pet: BattlePet;
   nickname: string;
   message: string;
+  roundResult?: { round: number; mine: boolean; rival: boolean };
 }) {
   const myPet = mine?.pet || pet;
   const enemyPet = rival?.pet || { name: "RIVAL", color: "#edac79" };
@@ -70,11 +72,27 @@ export default function BattleArena({
           </div>
         </div>
         <div className="arena-platform enemy-platform" />
-        <div className="enemy-position">
+        <div
+          key={`enemy-${roundResult?.round}`}
+          className={`enemy-position ${roundResult?.rival ? "successful-move" : ""}`}
+        >
+          {roundResult?.rival && (
+            <span className="move-stars" aria-hidden="true">
+              ✦ ✧ ✦
+            </span>
+          )}
           <Creature pet={enemyPet} />
         </div>
         <div className="arena-platform own-platform" />
-        <div className="own-position">
+        <div
+          key={`own-${roundResult?.round}`}
+          className={`own-position ${roundResult?.mine ? "successful-move" : ""}`}
+        >
+          {roundResult?.mine && (
+            <span className="move-stars" aria-hidden="true">
+              ✦ ✧ ✦
+            </span>
+          )}
           <Creature pet={myPet} rear />
         </div>
         <div className="fighter-card own-card">

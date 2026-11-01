@@ -56,6 +56,15 @@ def leaderboard():
     )
 
 
+@app.get("/api/progress")
+def progress(nickname: str):
+    if not 1 <= len(nickname.strip()) <= 20:
+        raise GameError("Invalid nickname", 400)
+    return JSONResponse(
+        {"subjects": store.progress(nickname)}, headers={"Cache-Control": "no-store"}
+    )
+
+
 @app.exception_handler(GameError)
 async def game_error(request: Request, error: GameError):
     return JSONResponse({"error": error.message}, status_code=error.status)

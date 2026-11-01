@@ -785,6 +785,77 @@ footer {
   box-shadow: 3px 3px 0 #87996e;
   font-size: 12px;
 }
+.learning-progress {
+  margin-top: 24px;
+  border-top: 3px solid #43513b;
+  padding-top: 16px;
+}
+.learning-progress h3 {
+  font-size: 14px;
+}
+.learning-progress p {
+  font-size: 12px;
+}
+.subject-progress {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+}
+.subject-progress article {
+  padding: 14px;
+  border: 2px solid #87996e;
+  background: #f7f4d9;
+  font-size: 11px;
+}
+.subject-progress progress {
+  width: 100%;
+  accent-color: #43513b;
+}
+.successful-move .battle-creature {
+  animation: victory-hop 650ms ease-out;
+}
+.move-stars {
+  position: absolute;
+  inset: 0;
+  text-align: center;
+  font-size: 32px;
+  color: #705600;
+  pointer-events: none;
+  animation: victory-stars 900ms ease-out forwards;
+  z-index: 5;
+}
+@keyframes victory-hop {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  35% {
+    translate: 0 -22px;
+  }
+  65% {
+    translate: 0 -8px;
+  }
+}
+@keyframes victory-stars {
+  from {
+    opacity: 1;
+    scale: 0.5;
+  }
+  to {
+    opacity: 0;
+    scale: 1.6;
+    translate: 0 -35px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .successful-move .battle-creature,
+  .move-stars {
+    animation: none;
+  }
+  .move-stars {
+    display: none;
+  }
+}
 .pet-advice p {
   margin: 8px 0 0;
 }
