@@ -2,6 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, CSSProperties } from "react";
 
 type Skill = { id: string; name: string; symbol: string };
+type Question = {
+  category: string;
+  question: string;
+  options: { id: string; text: string }[];
+  correct_answer: string;
+};
+
 type Pet = { name: string; color: string; image?: string };
 const starters: Pet[] = [
   { name: "BYTE", color: "#aaa0e8" },
@@ -67,6 +74,38 @@ export default function App() {
   const fileInput = useRef<HTMLInputElement>(null);
   const urls = useRef<string[]>([]);
   const pet = pets[index];
+  const [question, setQuestion] = useState<Question | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [questionError, setQuestionError] = useState("");
+
+  async function generateQuestion() {
+    setGenerating(true);
+    setQuestion(null);
+    setQuestionError("");
+    try {
+      const response = await fetch("/api/questions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category: selected }),
+      });
+      const data = await response.json();
+      if (!response.ok)
+        throw new Error(
+          typeof data.detail === "string"
+            ? data.detail
+            : "Could not generate a question.",
+        );
+      setQuestion(data);
+    } catch (error) {
+      setQuestionError(
+        error instanceof Error
+          ? error.message
+          : "Could not generate a question.",
+      );
+    } finally {
+      setGenerating(false);
+    }
+  }
 
   useEffect(() => {
     const controller = new AbortController();
@@ -251,7 +290,12 @@ export default function App() {
                       key={skill.id}
                       className={selected === skill.id ? "selected" : ""}
                       aria-pressed={selected === skill.id}
-                      onClick={() => setSelected(skill.id)}
+                      disabled={generating}
+                      onClick={() => {
+                        setSelected(skill.id);
+                        setQuestion(null);
+                        setQuestionError("");
+                      }}
                     >
                       <span>{skill.symbol}</span>
                       {skill.name}
@@ -391,6 +435,7 @@ export default function App() {
           <div className="step-actions">
             <button
               className="retro-button secondary"
+              disabled={generating}
               onClick={() => setStep(step - 1)}
             >
               ← BACK
@@ -407,6 +452,43 @@ export default function App() {
           </div>
         )}
       </section>
+      {step === 2 && (
+        <section className="practice">
+          <button
+            className="retro-button primary"
+            disabled={!skills.length || generating}
+            onClick={generateQuestion}
+          >
+            {generating ? "GENERATING…" : "GENERATE PRACTICE QUESTION"}
+          </button>
+          {questionError && (
+            <p role="alert" className="error">
+              {questionError}
+            </p>
+          )}
+          {question && (
+            <section className="question-card" aria-label="Practice question">
+              <p className="eyebrow">{question.category} · PRACTICE QUESTION</p>
+              <h2>{question.question}</h2>
+              <ol className="question-options">
+                {question.options.map((option) => (
+                  <li
+                    key={option.id}
+                    className={
+                      option.id === question.correct_answer ? "correct" : ""
+                    }
+                  >
+                    <strong>{option.id}</strong> <span>{option.text}</span>
+                    {option.id === question.correct_answer && (
+                      <span className="answer-label">Correct answer</span>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
+        </section>
+      )}
       <footer>
         <span>5 ROUNDS. 2 PETS. 1 WINNER.</span>
         <ConnectionIndicator />

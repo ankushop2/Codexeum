@@ -14,19 +14,19 @@ The intended experience takes inspiration from retro creature battles: two pets 
 4. Help your pet when it cannot answer. Human intervention is part of the battle; its limits and scoring are still being designed.
 5. Reveal the answers and resolve the attacks. See the match result and compete on a nickname-based leaderboard.
 
-Room and round updates are delivered by polling the game API. Pet imports refer to avatar artwork, not access to a player's Codex account or conversation history.
+Room events and round updates are intended to reach both players in real time over sockets. Pet imports refer to avatar artwork, not access to a player's Codex account or conversation history.
 
 ## Current status
 
-This repository currently provides a working frontend/API foundation. You can open the arena preview, see two animated placeholder pets and health bars, select one of seven categories loaded from Flask, and preview your selection.
+The frontend provides pet selection and image import, trainer naming, specialty selection, and a ready screen with practice question generation.
 
-The game API supports rooms, five timed rounds and scoring with fixed questions. The frontend is not connected to the game API yet. Pet importing, Codex answers, human assists and the leaderboard are not implemented.
+The game API supports rooms, five timed rounds and scoring with fixed questions. The multiplayer frontend is not connected yet. Practice questions use OpenAI; pet answers, human assists and the leaderboard are not implemented.
 
 ## Stack
 
 - **Frontend:** React, TypeScript, Vite, CSS, and Motion for animation.
-- **Backend:** Flask, with Python dependencies managed by uv.
-- **Deployment:** One Docker image serving the built React app and Flask API through Gunicorn on the same origin.
+- **Backend:** FastAPI and the OpenAI Python SDK, with Python dependencies managed by uv.
+- **Deployment:** One Docker image serving the built React app and FastAPI through Uvicorn on the same origin.
 
 ## Local development
 
@@ -35,10 +35,12 @@ Requires Node.js 24, pnpm 10.23, uv, and Python 3.12 (uv can install Python).
 ```sh
 pnpm install --frozen-lockfile
 uv sync --python 3.12
+cp .env.example .env
+# Set OPENAI_API_KEY in .env
 pnpm dev
 ```
 
-Open http://localhost:5173. Vite forwards `/api` to Flask on port 5001. No credentials are needed for the foundation preview.
+Open http://localhost:5173. Vite forwards `/api` to FastAPI on port 5001. Set `OPENAI_API_KEY` to generate questions; `OPENAI_MODEL` defaults to `gpt-4o-mini`. The arena and skills work without a key.
 
 ## Included primitives
 
@@ -46,7 +48,7 @@ Open http://localhost:5173. Vite forwards `/api` to Flask on port 5001. No crede
 - HealthBar with accessible progress values.
 - PetAvatar with original CSS placeholder creatures and idle animation.
 - SkillCard with keyboard focus and selected state.
-- Seven categories fetched from `/api/skills`, plus `/api/health`.
+- Seven categories fetched from `/api/skills`, plus `/api/health` and `POST /api/questions`.
 - Responsive arena preview with explicit loading/error states.
 
 ## Basic checks
@@ -54,10 +56,10 @@ Open http://localhost:5173. Vite forwards `/api` to Flask on port 5001. No crede
 ```sh
 pnpm build
 pnpm format:check
-uv run python -c "from app import app; c = app.test_client(); print(c.get('/api/health').json); print(c.get('/api/skills').json); print(c.get('/').status_code)"
+uv run pytest
 ```
 
-`pnpm build` typechecks and builds the frontend into `public/`. `pnpm format` formats frontend/configuration files and Python. No test suite or manual lint run is included.
+`pnpm build` typechecks and builds the frontend into `public/`. `pnpm format` formats frontend/configuration files and Python. The tests mock the model call and do not require credentials.
 
 ## One deployment on Vercel
 
@@ -74,19 +76,31 @@ docker build -t codex-arena .
 docker run --rm -p 8000:80 codex-arena
 ```
 
-Open http://localhost:8000. The multi-stage image builds React, installs Python dependencies with uv, and serves both with Gunicorn as a non-root user. The `PORT` environment variable defaults to 80.
+Open http://localhost:8000. The multi-stage image builds React, installs Python dependencies with uv, and serves both with Uvicorn as a non-root user. The `PORT` environment variable defaults to 80.
 
 The same image can also run on other container hosts. The app works without a separate frontend host or CORS configuration.
 
 ## Integration boundaries
 
-Keep answer keys, scoring, game rules, and Codex credentials on the server. Shared games use Redis and expire after inactivity; polling delivers updates to clients. Add durable storage if a leaderboard is needed.
+The practice prototype returns answer keys to the client for inspection. Multiplayer game answers remain on the server. Shared games use Redis and expire after inactivity; polling delivers updates to clients. Add durable storage if a leaderboard is needed.
 
 Pet artwork is presentation only; importing an avatar does not import a model, conversation, or account credentials. Replace PetAvatar with original or licensed sprites when ready.
 
 ## Credits
 
-Created during the DevDay Community Hackathon in London on 1 November 2026. React/TypeScript scaffold generated using create-vite. Codex helped write the React primitives, Flask routes, and deployment configuration. The included pets are original CSS placeholders. No Pokémon assets are bundled. DM Sans and Space Grotesk are loaded from Google Fonts with system fallbacks. Dependencies retain their respective licenses.
+Created during the DevDay Community Hackathon in London on 1 November 2026. React/TypeScript scaffold generated using create-vite. Codex helped write the React primitives, FastAPI routes, and deployment configuration. The included pets are original CSS placeholders. No Pokémon assets are bundled. DM Sans and Space Grotesk are loaded from Google Fonts with system fallbacks. Dependencies retain their respective licenses.
+
+## Generate a question
+
+With the server running and an API key configured:
+
+```sh
+curl -X POST http://localhost:5001/api/questions \
+  -H 'Content-Type: application/json' \
+  -d '{"category":"python"}'
+```
+
+The response includes `category`, `question`, four options with IDs A–D, and `correct_answer`. The API validates the response structure, but generated answers should be reviewed for accuracy. FastAPI's interactive API documentation is available at `/docs`. For Docker, pass credentials with `--env-file .env`.
 
 ## Game API
 

@@ -1,7 +1,10 @@
 from pathlib import Path
+from typing import Any
 
-from flask import Flask, jsonify, request, send_from_directory
-from werkzeug.exceptions import HTTPException
+from dotenv import load_dotenv
+from fastapi import Body, FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse
 
 from game import (
     GameError,
@@ -12,9 +15,12 @@ from game import (
     get_game,
     join_game,
 )
+from models import Question, QuestionRequest
+from question_generator import ConfigurationError, GenerationError, generate_question
 
+load_dotenv()
 PUBLIC = Path(__file__).parent / "public"
-app = Flask(__name__, static_folder=None)
+app = FastAPI(title="Codex Arena API")
 
 SKILLS = [
     {"id": "debugging", "name": "Debugging", "symbol": "⌘"},
@@ -37,71 +43,77 @@ def skills():
     return {"skills": SKILLS}
 
 
-@app.get("/")
-@app.get("/<path:path>")
-def frontend(path=""):
-    if path == "api" or path.startswith("api/"):
-        return jsonify(error="API route not found"), 404
-    if not (PUBLIC / "index.html").exists():
-        return jsonify(error="Frontend not built. Run pnpm build."), 503
-    if path and (PUBLIC / path).is_file():
-        return send_from_directory(PUBLIC, path)
-    if path and "." in path.rsplit("/", 1)[-1]:
-        return jsonify(error="Asset not found"), 404
-    return send_from_directory(PUBLIC, "index.html")
-
-
-@app.errorhandler(HTTPException)
-def http_error(error):
-    if error.code == 405 or not error.description:
-        return jsonify(error=error.name), error.code
-    return jsonify(error=error.name), error.code
+@app.post("/api/questions", response_model=Question)
+def question(request: QuestionRequest):
+    try:
+        return generate_question(request.category)
+    except ConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except GenerationError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 store = RedisStore()
 
 
-def body():
-    value = request.get_json(silent=True)
+@app.exception_handler(GameError)
+async def game_error(request: Request, error: GameError):
+    return JSONResponse({"error": error.message}, status_code=error.status)
+
+
+@app.exception_handler(StoreUnavailable)
+async def store_error(request: Request, error: StoreUnavailable):
+    return JSONResponse({"error": "Game storage unavailable"}, status_code=503)
+
+
+def body(value):
     if not isinstance(value, dict):
         raise GameError("Expected a JSON object", 400)
     return value
 
 
-def token():
+def token(request: Request):
     return request.headers.get("Authorization", "").removeprefix("Bearer ")
 
 
-@app.errorhandler(GameError)
-def game_error(error):
-    return jsonify(error=error.message), error.status
+@app.post("/api/games", status_code=201)
+def create(data: Any = Body(default=None)):
+    return create_game(store, body(data).get("category"))
 
 
-@app.errorhandler(StoreUnavailable)
-def store_error(error):
-    return jsonify(error="Game storage unavailable"), 503
+@app.post("/api/games/{code}/join")
+def join(code: str, data: Any = Body(default=None)):
+    return join_game(store, code.upper(), body(data).get("category"))
 
 
-@app.post("/api/games")
-def create():
-    return jsonify(create_game(store, body().get("category"))), 201
-
-
-@app.post("/api/games/<code>/join")
-def join(code):
-    return jsonify(join_game(store, code.upper(), body().get("category")))
-
-
-@app.get("/api/games/<code>")
-def state(code):
-    response = jsonify(get_game(store, code.upper(), token()))
-    response.headers["Cache-Control"] = "no-store"
-    return response
-
-
-@app.post("/api/games/<code>/answers")
-def answer(code):
-    data = body()
-    return jsonify(
-        answer_game(store, code.upper(), token(), data.get("round"), data.get("answer"))
+@app.get("/api/games/{code}")
+def state(code: str, request: Request):
+    return JSONResponse(
+        get_game(store, code.upper(), token(request)),
+        headers={"Cache-Control": "no-store"},
     )
+
+
+@app.post("/api/games/{code}/answers")
+def answer(code: str, request: Request, data: Any = Body(default=None)):
+    data = body(data)
+    return answer_game(
+        store, code.upper(), token(request), data.get("round"), data.get("answer")
+    )
+
+
+@app.get("/{path:path}", include_in_schema=False)
+def frontend(path: str):
+    if path == "api" or path.startswith("api/"):
+        raise HTTPException(status_code=404, detail="API route not found")
+    index = PUBLIC / "index.html"
+    if not index.is_file():
+        raise HTTPException(
+            status_code=503, detail="Frontend not built. Run pnpm build."
+        )
+    candidate = (PUBLIC / path).resolve()
+    if candidate.is_relative_to(PUBLIC.resolve()) and candidate.is_file():
+        return FileResponse(candidate)
+    if path and "." in path.rsplit("/", 1)[-1]:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    return FileResponse(index)

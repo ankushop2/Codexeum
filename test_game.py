@@ -3,6 +3,8 @@ import threading
 import unittest
 from unittest.mock import patch
 
+from fastapi.testclient import TestClient
+
 import app
 import game
 
@@ -114,17 +116,17 @@ class ApiTests(unittest.TestCase):
         self.patcher = patch.object(app, "store", self.store)
         self.patcher.start()
         self.addCleanup(self.patcher.stop)
-        self.client = app.app.test_client()
+        self.client = TestClient(app.app)
 
     def test_create_join_get_answer(self):
         first = self.client.post("/api/games", json={"category": "python"})
         self.assertEqual(first.status_code, 201)
-        code = first.json["code"]
+        code = first.json()["code"]
         second = self.client.post(f"/api/games/{code}/join", json={"category": "web"})
         self.assertEqual(second.status_code, 200)
-        headers = {"Authorization": "Bearer " + first.json["token"]}
+        headers = {"Authorization": "Bearer " + first.json()["token"]}
         state = self.client.get(f"/api/games/{code}", headers=headers)
-        self.assertEqual(state.json["phase"], "playing")
+        self.assertEqual(state.json()["phase"], "playing")
         self.assertEqual(state.headers["Cache-Control"], "no-store")
         self.assertEqual(
             self.client.post(

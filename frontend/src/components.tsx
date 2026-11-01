@@ -73,16 +73,19 @@ export function SkillCard({
   symbol,
   selected,
   onClick,
+  disabled = false,
 }: {
   name: string;
   symbol: string;
   selected: boolean;
   onClick: () => void;
+  disabled?: boolean;
 }) {
   return (
     <button
       className={`skill ${selected ? "selected" : ""}`}
       aria-pressed={selected}
+      disabled={disabled}
       onClick={onClick}
     >
       <span>{symbol}</span>
