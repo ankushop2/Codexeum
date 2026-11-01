@@ -113,6 +113,8 @@ export default function GameRoom({
   const [pairing, setPairing] = useState("");
   const [remaining, setRemaining] = useState(0);
   const [fatal, setFatal] = useState(false);
+  const [autonomous, setAutonomous] = useState(false);
+  const [autoCountdown, setAutoCountdown] = useState<number | null>(null);
   const [petPrompt, setPetPrompt] = useState("");
   const [petBusy, setPetBusy] = useState(false);
   const [petReply, setPetReply] = useState<{
@@ -121,6 +123,8 @@ export default function GameRoom({
     answer: number | null;
     needsHelp: boolean;
     guided: boolean;
+    autonomous?: boolean;
+    order?: number[] | null;
   } | null>(null);
   const petAttempt = useRef("");
   const petRequest = useRef(0);
@@ -369,7 +373,7 @@ export default function GameRoom({
       return;
     const round = game.round;
     const request = ++petRequest.current;
-    petAttempt.current = `${session.code}:${round}`;
+    petAttempt.current = `${session.code}:${round}:${autonomous}`;
     setPetBusy(true);
     setPetReply(null);
     if (prompt.trim()) setPetPrompt("");
@@ -380,11 +384,12 @@ export default function GameRoom({
         answer: number | null;
         eliminated?: number[];
         needs_help: boolean;
+        order?: number[] | null;
       }>(
         `/${session.code}/pet`,
         {
           method: "POST",
-          body: JSON.stringify({ round, prompt: prompt.trim() }),
+          body: JSON.stringify({ round, prompt: prompt.trim(), autonomous }),
         },
         session.token,
       );
@@ -402,6 +407,8 @@ export default function GameRoom({
         answer: result.answer,
         needsHelp: result.needs_help,
         guided: !!prompt.trim(),
+        autonomous,
+        order: result.order,
       });
     } catch (error) {
       if (request !== petRequest.current) return;
@@ -426,13 +433,14 @@ export default function GameRoom({
       game.answered ||
       !game.question ||
       game.players[game.you]?.controller === "codex" ||
-      game.question.difficulty === "hard" ||
-      game.question.category === game.players[game.you]?.category ||
-      remaining > 15 ||
+      (!autonomous &&
+        (game.question.difficulty === "hard" ||
+          game.question.category === game.players[game.you]?.category ||
+          remaining > 15)) ||
       remaining === 0
     )
       return;
-    const key = `${session.code}:${game.round}`;
+    const key = `${session.code}:${game.round}:${autonomous}`;
     if (petAttempt.current === key) return;
     petAttempt.current = key;
     void askPet();
@@ -441,8 +449,57 @@ export default function GameRoom({
     game?.phase,
     game?.round,
     game?.answered,
+    autonomous,
     remaining <= 15,
     remaining === 0,
+  ]);
+
+  useEffect(() => {
+    setAutoCountdown(null);
+    if (
+      !autonomous ||
+      !session ||
+      game?.phase !== "playing" ||
+      game.answered ||
+      game.players[game.you]?.controller === "codex" ||
+      !petReply?.autonomous ||
+      petReply.round !== game.round ||
+      petReply.needsHelp ||
+      petReply.answer === null ||
+      petBusy ||
+      petPrompt.trim() ||
+      remaining === 0 ||
+      fatal ||
+      busy
+    )
+      return;
+    let seconds = 5;
+    setAutoCountdown(seconds);
+    const timer = setInterval(() => {
+      seconds -= 1;
+      setAutoCountdown(seconds);
+      if (seconds === 0) {
+        clearInterval(timer);
+        void answer(
+          petReply.order ?? petReply.answer!,
+          petReply.guided ? "team" : "pet",
+        );
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [
+    autonomous,
+    session,
+    game?.phase,
+    game?.round,
+    game?.answered,
+    game?.players[game.you]?.controller,
+    petReply,
+    petBusy,
+    petPrompt,
+    remaining === 0,
+    fatal,
+    busy,
   ]);
 
   useEffect(() => {
@@ -510,6 +567,31 @@ export default function GameRoom({
     : null;
   return (
     <section className="room-panel">
+      {mine?.controller !== "codex" && (
+        <div className="pet-advice">
+          <label>
+            <input
+              type="checkbox"
+              checked={autonomous}
+              onChange={(event) => setAutonomous(event.target.checked)}
+            />{" "}
+            PET PLAYS · GPT autopilot
+          </label>
+          <p>
+            Your pet picks and submits each answer for 2 points. You can pause,
+            steer it, or pick an answer yourself. Keep this tab open.
+          </p>
+          {autonomous && (
+            <strong role="status">
+              {petPrompt.trim()
+                ? "Paused while you write guidance. Send it to resume."
+                : autoCountdown !== null
+                  ? `Submitting in ${autoCountdown}s — type guidance or switch off to pause!`
+                  : "Pet plays is on. Uncertain pets wait for your help."}
+            </strong>
+          )}
+        </div>
+      )}
       {!session ? (
         <>
           <div className="room-loadout">
@@ -827,7 +909,7 @@ export default function GameRoom({
                             {remaining}s
                           </strong>
                         </div>
-                        {game.question.difficulty === "hard" && (
+                        {game.question.difficulty === "hard" && !autonomous && (
                           <p className="challenge-label">
                             ✦ A-LEVEL CHALLENGE · Ask your pet to eliminate two
                             options
@@ -853,6 +935,16 @@ export default function GameRoom({
                                   ? `: TRY ${String.fromCharCode(65 + petReply.answer)}`
                                   : ":"}
                               </strong>
+                              {petReply.order && (
+                                <p>
+                                  MY ORDER:{" "}
+                                  {petReply.order
+                                    .map(
+                                      (index) => game.question!.options[index],
+                                    )
+                                    .join(" → ")}
+                                </p>
+                              )}
                               <p>{petReply.text.replace(/\*\*|__|`/g, "")}</p>
                               <p>
                                 {(game.eliminated || []).length > 0
@@ -935,20 +1027,24 @@ export default function GameRoom({
                                 : "Choose your answer before time runs out."}
                         </p>
                         <div
-                          className={`pet-prompt ${(game.question.category !== mine?.category || game.question.difficulty === "hard") && !game.answered && remaining > 0 ? "pet-help-panel" : ""}`}
+                          className={`pet-prompt ${(autonomous || game.question.category !== mine?.category || game.question.difficulty === "hard") && !game.answered && remaining > 0 ? "pet-help-panel" : ""}`}
                         >
-                          {(game.question.category !== mine?.category ||
+                          {(autonomous ||
+                            game.question.category !== mine?.category ||
                             game.question.difficulty === "hard") &&
                             !game.answered &&
                             remaining > 0 && (
                               <>
                                 <label htmlFor="pet-prompt">
-                                  ✦ STUCK? ASK {myPetName.toUpperCase()}!
+                                  ✦ {autonomous ? "STEER" : "ASK"}{" "}
+                                  {myPetName.toUpperCase()}!
                                 </label>
                                 <p>
-                                  {game.question.difficulty === "hard"
-                                    ? "Ask your pet for a 50/50 hint: two wrong options will be eliminated."
-                                    : "Your learning buddy is ready to help. Ask for a clue or a suggestion."}
+                                  {autonomous
+                                    ? "Tell your pet how to approach this question. Typing pauses submission; send guidance for a new pick."
+                                    : game.question.difficulty === "hard"
+                                      ? "Ask your pet for a 50/50 hint: two wrong options will be eliminated."
+                                      : "Your learning buddy is ready to help. Ask for a clue or a suggestion."}
                                 </p>
                                 <textarea
                                   id="pet-prompt"
@@ -983,7 +1079,10 @@ export default function GameRoom({
                                 </button>
                                 <p>
                                   A correct answer with pet advice earns 2
-                                  points. You choose the final answer.
+                                  points.{" "}
+                                  {autonomous
+                                    ? "Your pet submits unless you pause or take over."
+                                    : "You choose the final answer."}
                                 </p>
                               </>
                             )}
