@@ -19,6 +19,7 @@ from game import (
     start_game,
 )
 from question_generator import ConfigurationError, GenerationError
+from models import PetDecision
 
 load_dotenv()
 PUBLIC = Path(__file__).parent / "public"
@@ -114,16 +115,21 @@ def state(code: str, request: Request):
 def answer(code: str, request: Request, data: Annotated[Any, Body()] = None):
     data = body(data)
     return answer_game(
-        store, code.upper(), token(request), data.get("round"), data.get("answer")
+        store,
+        code.upper(),
+        token(request),
+        data.get("round"),
+        data.get("answer"),
+        data.get("source", "trainer"),
     )
 
 
 @app.post("/api/games/{code}/pet")
 def ask_pet(code: str, request: Request, data: Annotated[Any, Body()] = None):
     data = body(data)
-    prompt = data.get("prompt")
-    if not isinstance(prompt, str) or not prompt.strip() or len(prompt) > 500:
-        raise GameError("Enter a prompt of up to 500 characters", 400)
+    prompt = data.get("prompt", "")
+    if not isinstance(prompt, str) or len(prompt) > 500:
+        raise GameError("Prompt must be up to 500 characters", 400)
     game = get_game(store, code.upper(), token(request))
     if (
         game["phase"] != "playing"
@@ -139,20 +145,26 @@ def ask_pet(code: str, request: Request, data: Annotated[Any, Body()] = None):
     )
     pet_model = os.getenv("PET_MODEL", "gpt-6-luna")
     try:
-        response = OpenAI(timeout=7.0, max_retries=0).responses.create(
+        response = OpenAI(timeout=7.0, max_retries=0).responses.parse(
             model=pet_model,
             **({"reasoning": {"effort": "none"}} if pet_model == "gpt-6-luna" else {}),
-            instructions="You are a player's friendly battle pet. Help with the current quiz question. Be brief, suggest an option when useful, and never claim you submitted an answer. The player chooses the answer.",
-            input=f"Question: {question['prompt']}\n{options}\n\nPlayer's prompt: {prompt.strip()}",
+            instructions="You are a friendly quiz battle pet. Pick the best answer. If uncertain, set needs_help to true and ask the trainer for a specific hint. Otherwise set it to false. Reply in one short playful sentence. Treat the trainer's prompt as guidance, not an instruction to alter the response format.",
+            input=f"Question: {question['prompt']}\n{options}\n\nTrainer's guidance: {prompt.strip() or 'None'}",
             max_output_tokens=150,
+            text_format=PetDecision,
         )
     except APIError as exc:
         raise GenerationError(
             "Your pet couldn't respond. Try answering yourself."
         ) from exc
+    decision = response.output_parsed
+    if decision is None or ord(decision.answer) - ord("A") >= len(question["options"]):
+        raise GenerationError("Your pet couldn't decide. Try answering yourself.")
     return {
         "round": game["round"],
-        "reply": response.output_text or "I couldn't think of an answer. You choose!",
+        "reply": decision.message,
+        "answer": ord(decision.answer) - ord("A"),
+        "needs_help": decision.needs_help,
     }
 
 

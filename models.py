@@ -35,3 +35,9 @@ class GeneratedQuestion(BaseModel):
 
 class QuestionSet(BaseModel):
     questions: list[GeneratedQuestion]
+
+
+class PetDecision(BaseModel):
+    answer: OptionId
+    needs_help: bool
+    message: str

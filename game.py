@@ -167,6 +167,9 @@ def advance(game, now):
             "answers": [
                 game["answers"].get(str(i), {}).get("correct") for i in range(2)
             ],
+            "sources": [
+                game["answers"].get(str(i), {}).get("source") for i in range(2)
+            ],
         }
     )
     game["round"] += 1
@@ -276,14 +279,14 @@ def begin_round(game, now):
         )
 
 
-def record_answer(game, index, answer):
+def record_answer(game, index, answer, source="trainer"):
     question = game["questions"][game["round"]]
     correct = answer == question["answer"]
     if correct:
         game["players"][index]["score"] += (
             2 if game["players"][index]["category"] == question["category"] else 5
         )
-    game["answers"][str(index)] = {"correct": correct}
+    game["answers"][str(index)] = {"correct": correct, "source": source}
 
 
 def tick(game, now):
@@ -294,7 +297,7 @@ def tick(game, now):
     if game.get("bot_due", float("inf")) <= now:
         for index, p in enumerate(game["players"]):
             if p.get("bot") and str(index) not in game["answers"]:
-                record_answer(game, index, game["bot_answer"])
+                record_answer(game, index, game["bot_answer"], "bot")
     if now >= game["deadline"] or len(game["answers"]) == 2:
         advance(game, now)
 
@@ -359,7 +362,7 @@ def get_game(store, code, token):
     return update(store, code, action)
 
 
-def answer_game(store, code, token, round_number, answer):
+def answer_game(store, code, token, round_number, answer, source="trainer"):
     def action(game, now):
         index = identify(game, token)
         if (
@@ -373,7 +376,9 @@ def answer_game(store, code, token, round_number, answer):
         question = game["questions"][game["round"]]
         if type(answer) is not int or not 0 <= answer < len(question["options"]):
             raise GameError("Invalid answer", 400)
-        record_answer(game, index, answer)
+        if source not in ("trainer", "pet", "team"):
+            raise GameError("Invalid answer source", 400)
+        record_answer(game, index, answer, source)
         if len(game["answers"]) == 2:
             advance(game, now)
         return lambda game, now: view(game, now, index)

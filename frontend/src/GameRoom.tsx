@@ -13,7 +13,12 @@ type Game = {
   deadline?: number;
   question?: { category: string; prompt: string; options: string[] };
   answered?: boolean;
-  history: { round: number; category: string; answers: (boolean | null)[] }[];
+  history: {
+    round: number;
+    category: string;
+    answers: (boolean | null)[];
+    sources?: (string | null)[];
+  }[];
   winner?: number | null;
 };
 
@@ -93,7 +98,12 @@ export default function GameRoom({
   const [petReply, setPetReply] = useState<{
     round: number;
     text: string;
+    answer: number | null;
+    needsHelp: boolean;
+    guided: boolean;
   } | null>(null);
+  const petAttempt = useRef("");
+  const petRequest = useRef(0);
   const version = useRef(0);
   const submitting = useRef(false);
   const clock = useRef({ deadline: 0, serverTime: 0, receivedAt: 0 });
@@ -267,7 +277,10 @@ export default function GameRoom({
     }
   }
 
-  async function answer(index: number) {
+  async function answer(
+    index: number,
+    source: "trainer" | "pet" | "team" = "trainer",
+  ) {
     if (!session || !game?.round || submitting.current) return;
     submitting.current = true;
     version.current += 1;
@@ -279,7 +292,7 @@ export default function GameRoom({
           `/${session.code}/answers`,
           {
             method: "POST",
-            body: JSON.stringify({ round: game.round, answer: index }),
+            body: JSON.stringify({ round: game.round, answer: index, source }),
           },
           session.token,
         ),
@@ -296,34 +309,96 @@ export default function GameRoom({
     }
   }
 
-  async function askPet() {
-    if (!session || !game?.round || !petPrompt.trim() || petBusy) return;
+  async function askPet(prompt = "") {
+    if (!session || !game?.round) return;
     const round = game.round;
+    const request = ++petRequest.current;
     setPetBusy(true);
     setPetReply(null);
+    if (prompt.trim()) setPetPrompt("");
     try {
-      const result = await api<{ round: number; reply: string }>(
+      const result = await api<{
+        round: number;
+        reply: string;
+        answer: number;
+        needs_help: boolean;
+      }>(
         `/${session.code}/pet`,
         {
           method: "POST",
-          body: JSON.stringify({ round, prompt: petPrompt.trim() }),
+          body: JSON.stringify({ round, prompt: prompt.trim() }),
         },
         session.token,
       );
-      setPetReply({ round: result.round, text: result.reply });
+      if (request !== petRequest.current) return;
+      setPetReply({
+        round: result.round,
+        text: result.reply,
+        answer: result.answer,
+        needsHelp: result.needs_help,
+        guided: !!prompt.trim(),
+      });
     } catch (error) {
+      if (request !== petRequest.current) return;
       setPetReply({
         round,
         text:
           error instanceof Error ? error.message : "Your pet couldn't respond.",
+        answer: null,
+        needsHelp: true,
+        guided: false,
       });
     } finally {
-      setPetBusy(false);
+      if (request === petRequest.current) setPetBusy(false);
     }
   }
 
+  useEffect(() => {
+    if (!session || game?.phase !== "playing" || !game.round || game.answered)
+      return;
+    const key = `${session.code}:${game.round}`;
+    if (petAttempt.current === key) return;
+    petAttempt.current = key;
+    setPetPrompt("");
+    void askPet();
+  }, [session, game?.phase, game?.round, game?.answered]);
+
+  useEffect(() => {
+    if (
+      !game ||
+      game.phase !== "playing" ||
+      game.answered ||
+      !petReply ||
+      petReply.round !== game.round ||
+      petReply.needsHelp ||
+      petReply.answer === null ||
+      petBusy ||
+      petPrompt.trim() ||
+      remaining === 0
+    )
+      return;
+    const timer = setTimeout(
+      () => void answer(petReply.answer!, petReply.guided ? "team" : "pet"),
+      3000,
+    );
+    return () => clearTimeout(timer);
+  }, [
+    game?.phase,
+    game?.round,
+    game?.answered,
+    petReply,
+    petBusy,
+    petPrompt,
+    remaining === 0,
+  ]);
+
   function leave() {
     version.current += 1;
+    petRequest.current += 1;
+    petAttempt.current = "";
+    setPetReply(null);
+    setPetBusy(false);
+    setPetPrompt("");
     setSession(null);
     setGame(null);
     setFatal(false);
@@ -560,17 +635,32 @@ export default function GameRoom({
                             remaining === 0 ||
                             fatal
                           }
-                          onClick={() => void askPet()}
+                          onClick={() => void askPet(petPrompt)}
                         >
                           {petBusy ? "THINKING…" : "ASK PET →"}
                         </button>
-                        {petReply && petReply.round === game.round && (
-                          <p role="status">{petReply.text}</p>
+                        {petBusy && (
+                          <p role="status">{myPetName} is thinking…</p>
                         )}
-                        <p>
-                          Your pet can suggest an answer. Choose an option above
-                          to submit it.
-                        </p>
+                        {petReply &&
+                          petReply.round === game.round &&
+                          !game.answered && (
+                            <p role="status">
+                              {petReply.answer !== null && (
+                                <>
+                                  PET CHOOSES{" "}
+                                  {String.fromCharCode(65 + petReply.answer)}
+                                  .{" "}
+                                </>
+                              )}
+                              {petReply.text}{" "}
+                              {petReply.needsHelp
+                                ? "Give your pet a hint or choose an answer above!"
+                                : petPrompt.trim()
+                                  ? "Submit your hint or clear it to let your pet answer."
+                                  : "Submitting in 3 seconds. Choose another answer to take over!"}
+                            </p>
+                          )}
                       </div>
                       <p className="scoring-note">
                         Correct: 2 points in your specialty, 5 in another.
@@ -613,6 +703,8 @@ export default function GameRoom({
                           : round.answers[game.you] === false
                             ? "MISS"
                             : "TIMEOUT"}
+                        {round.answers[game.you] === true &&
+                          ` · +${round.category === mine?.category ? 2 : 5} PTS · ${(round.sources?.[game.you] || "trainer").toUpperCase()}`}
                       </span>
                       <span>
                         RIVAL:{" "}
@@ -621,6 +713,8 @@ export default function GameRoom({
                           : round.answers[game.you === 0 ? 1 : 0] === false
                             ? "MISS"
                             : "TIMEOUT"}
+                        {round.answers[game.you === 0 ? 1 : 0] === true &&
+                          ` · +${round.category === rival?.category ? 2 : 5} PTS · ${(round.sources?.[game.you === 0 ? 1 : 0] || "trainer").toUpperCase()}`}
                       </span>
                     </div>
                   ))}
