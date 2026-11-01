@@ -380,7 +380,7 @@ export default function App() {
           <span className="dialogue-icon">✳</span>
           <p>
             {step === 0
-              ? "Every great trainer starts with a companion. Pick a starter, or bring your own Codex pet."
+              ? "Your battle begins here, trainer! Choose your partner or bring your own Codex pet into the arena."
               : step === 1
                 ? "Five questions. Two pets. Choose answers to power your companion. Codex assistance is coming later."
                 : "Share a room code with your rival. Five questions, thirty seconds each. Both players ready up, then start when the questions are ready!"}
