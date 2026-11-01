@@ -14,13 +14,13 @@ The intended experience takes inspiration from retro creature battles: two pets 
 4. Help your pet when it cannot answer. Human intervention is part of the battle; its limits and scoring are still being designed.
 5. Reveal the answers and resolve the attacks. See the match result and compete on a nickname-based leaderboard.
 
-Room events and round updates are intended to reach both players in real time over sockets. Pet imports refer to avatar artwork, not access to a player's Codex account or conversation history.
+Room and round updates are delivered by polling the game API. Pet imports refer to avatar artwork, not access to a player's Codex account or conversation history.
 
 ## Current status
 
 This repository currently provides a working frontend/API foundation. You can open the arena preview, see two animated placeholder pets and health bars, select one of seven categories loaded from Flask, and preview your selection.
 
-The full match flow is planned. Pet importing, rooms, socket communication, question rounds, Codex answers, human assists, scoring, and the leaderboard are not implemented yet.
+The game API supports rooms, five timed rounds and scoring with fixed questions. The frontend is not connected to the game API yet. Pet importing, Codex answers, human assists and the leaderboard are not implemented.
 
 ## Stack
 
@@ -80,10 +80,23 @@ The same image can also run on other container hosts. The app works without a se
 
 ## Integration boundaries
 
-Keep answer keys, scoring, game rules, and Codex credentials on the server. Add durable database storage before shared matches or leaderboards; serverless instances do not share process memory or local disk. Run Centrifugo as an external real-time service and issue scoped connection tokens from Flask.
+Keep answer keys, scoring, game rules, and Codex credentials on the server. Shared games use Redis and expire after inactivity; polling delivers updates to clients. Add durable storage if a leaderboard is needed.
 
 Pet artwork is presentation only; importing an avatar does not import a model, conversation, or account credentials. Replace PetAvatar with original or licensed sprites when ready.
 
 ## Credits
 
 Created during the DevDay Community Hackathon in London on 1 November 2026. React/TypeScript scaffold generated using create-vite. Codex helped write the React primitives, Flask routes, and deployment configuration. The included pets are original CSS placeholders. No Pokémon assets are bundled. DM Sans and Space Grotesk are loaded from Google Fonts with system fallbacks. Dependencies retain their respective licenses.
+
+## Game API
+
+Set `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` to an Upstash Redis database in Vercel and in the local environment. The preview still works without them; game endpoints return 503 without storage. Games expire after one hour without activity.
+
+- `POST /api/games` with `{"category":"python"}` creates a game and returns its code and player token.
+- `POST /api/games/{code}/join` with `{"category":"web"}` joins it and returns the second token. Players must choose different categories.
+- `GET /api/games/{code}` returns the current state. Send `Authorization: Bearer <player token>` and poll approximately once per second.
+- `POST /api/games/{code}/answers` with the same authorization and `{"round":1,"answer":0}` submits a zero-based option index.
+
+Round deadlines and `server_time` are Unix timestamps in seconds. Show a local countdown using their difference; the server rejects late answers. A poll or other request resolves an expired round and starts the next one. `history` reports correctness for each player, with `null` for a timeout. `winner` is a zero-based player index or `null` for a draw. Player tokens are credentials and should be kept private. The current frontend is still an arena preview; these endpoints are ready for a game client.
+
+Run backend tests with `uv run python -m unittest -v`.

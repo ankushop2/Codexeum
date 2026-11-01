@@ -13,7 +13,7 @@ WORKDIR /app
 ENV UV_COMPILE_BYTECODE=1 PYTHONUNBUFFERED=1 PORT=80
 COPY pyproject.toml ./
 RUN uv sync --no-dev
-COPY app.py ./
+COPY app.py game.py ./
 COPY --from=frontend /app/public ./public
 RUN useradd --create-home battle
 USER battle

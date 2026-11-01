@@ -1,0 +1,149 @@
+import json
+import threading
+import unittest
+from unittest.mock import patch
+
+import app
+import game
+
+
+class MemoryStore:
+    def __init__(self):
+        self.games = {}
+        self.lock = threading.Lock()
+
+    def create(self, code, value):
+        with self.lock:
+            if code in self.games:
+                return False
+            self.games[code] = json.dumps(value)
+            return True
+
+    def get(self, code):
+        with self.lock:
+            return self.games.get(code)
+
+    def replace(self, code, old, value):
+        with self.lock:
+            if self.games.get(code) != old:
+                return False
+            self.games[code] = json.dumps(value)
+            return True
+
+
+class GameTests(unittest.TestCase):
+    def setUp(self):
+        self.store = MemoryStore()
+        self.first = game.create_game(self.store, "python")
+        self.code = self.first["code"]
+        self.second = game.join_game(self.store, self.code, "web")
+        self.tokens = [self.first["token"], self.second["token"]]
+
+    def test_concurrent_answers_score_and_advance_once(self):
+        current = json.loads(self.store.get(self.code))
+        correct = current["questions"][0]["answer"]
+        errors = []
+
+        def submit(token):
+            try:
+                game.answer_game(self.store, self.code, token, 1, correct)
+            except game.GameError as error:
+                errors.append(error)
+
+        threads = [
+            threading.Thread(target=submit, args=(token,)) for token in self.tokens
+        ]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+        self.assertEqual(errors, [])
+        state = game.get_game(self.store, self.code, self.tokens[0])
+        category = current["questions"][0]["category"]
+        self.assertEqual(
+            [p["score"] for p in state["players"]],
+            [2 if category == c else 5 for c in ("python", "web")],
+        )
+        self.assertEqual(state["round"], 2)
+        self.assertEqual(len(state["history"]), 1)
+        with self.assertRaises(game.GameError):
+            game.answer_game(self.store, self.code, self.tokens[0], 1, correct)
+
+    def test_timeout_rejects_late_answer_and_next_poll_advances(self):
+        current = json.loads(self.store.get(self.code))
+        with patch("game.time.time", return_value=current["deadline"]):
+            with self.assertRaises(game.GameError):
+                game.answer_game(self.store, self.code, self.tokens[0], 1, 0)
+            state = game.get_game(self.store, self.code, self.tokens[0])
+        self.assertEqual(state["round"], 2)
+        self.assertEqual(state["history"][0]["answers"], [None, None])
+        self.assertEqual(state["deadline"], current["deadline"] + 10)
+
+    def test_complete_five_rounds_and_hide_answers(self):
+        for round_number in range(1, 6):
+            current = json.loads(self.store.get(self.code))
+            state = game.get_game(self.store, self.code, self.tokens[0])
+            self.assertNotIn("answer", state["question"])
+            for token in self.tokens:
+                result = game.answer_game(
+                    self.store,
+                    self.code,
+                    token,
+                    round_number,
+                    current["questions"][round_number - 1]["answer"],
+                )
+        self.assertEqual(result["phase"], "finished")
+        self.assertEqual(len(result["history"]), 5)
+        scores = [p["score"] for p in result["players"]]
+        self.assertEqual(
+            result["winner"],
+            None if scores[0] == scores[1] else scores.index(max(scores)),
+        )
+
+    def test_authentication_and_invalid_inputs(self):
+        with self.assertRaises(game.GameError):
+            game.get_game(self.store, self.code, "invalid")
+        with self.assertRaises(game.GameError):
+            game.answer_game(self.store, self.code, self.tokens[0], 1, True)
+        self.assertEqual(len(json.loads(self.store.get(self.code))["answers"]), 0)
+
+
+class ApiTests(unittest.TestCase):
+    def setUp(self):
+        self.store = MemoryStore()
+        self.patcher = patch.object(app, "store", self.store)
+        self.patcher.start()
+        self.addCleanup(self.patcher.stop)
+        self.client = app.app.test_client()
+
+    def test_create_join_get_answer(self):
+        first = self.client.post("/api/games", json={"category": "python"})
+        self.assertEqual(first.status_code, 201)
+        code = first.json["code"]
+        second = self.client.post(f"/api/games/{code}/join", json={"category": "web"})
+        self.assertEqual(second.status_code, 200)
+        headers = {"Authorization": "Bearer " + first.json["token"]}
+        state = self.client.get(f"/api/games/{code}", headers=headers)
+        self.assertEqual(state.json["phase"], "playing")
+        self.assertEqual(state.headers["Cache-Control"], "no-store")
+        self.assertEqual(
+            self.client.post(
+                f"/api/games/{code}/answers",
+                headers=headers,
+                json={"round": 1, "answer": 0},
+            ).status_code,
+            200,
+        )
+        self.assertEqual(
+            self.client.post(
+                f"/api/games/{code}/answers",
+                headers=headers,
+                json={"round": 1, "answer": 0},
+            ).status_code,
+            409,
+        )
+        self.assertEqual(self.client.get(f"/api/games/{code}").status_code, 401)
+
+
+if __name__ == "__main__":
+    unittest.main()

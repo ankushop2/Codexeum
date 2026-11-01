@@ -1,7 +1,17 @@
 from pathlib import Path
 
-from flask import Flask, jsonify, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory
 from werkzeug.exceptions import HTTPException
+
+from game import (
+    GameError,
+    RedisStore,
+    StoreUnavailable,
+    answer_game,
+    create_game,
+    get_game,
+    join_game,
+)
 
 PUBLIC = Path(__file__).parent / "public"
 app = Flask(__name__, static_folder=None)
@@ -46,3 +56,52 @@ def http_error(error):
     if error.code == 405 or not error.description:
         return jsonify(error=error.name), error.code
     return jsonify(error=error.name), error.code
+
+
+store = RedisStore()
+
+
+def body():
+    value = request.get_json(silent=True)
+    if not isinstance(value, dict):
+        raise GameError("Expected a JSON object", 400)
+    return value
+
+
+def token():
+    return request.headers.get("Authorization", "").removeprefix("Bearer ")
+
+
+@app.errorhandler(GameError)
+def game_error(error):
+    return jsonify(error=error.message), error.status
+
+
+@app.errorhandler(StoreUnavailable)
+def store_error(error):
+    return jsonify(error="Game storage unavailable"), 503
+
+
+@app.post("/api/games")
+def create():
+    return jsonify(create_game(store, body().get("category"))), 201
+
+
+@app.post("/api/games/<code>/join")
+def join(code):
+    return jsonify(join_game(store, code.upper(), body().get("category")))
+
+
+@app.get("/api/games/<code>")
+def state(code):
+    response = jsonify(get_game(store, code.upper(), token()))
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.post("/api/games/<code>/answers")
+def answer(code):
+    data = body()
+    return jsonify(
+        answer_game(store, code.upper(), token(), data.get("round"), data.get("answer"))
+    )
