@@ -8,16 +8,13 @@ Category = Literal[
 OptionId = Literal["A", "B", "C", "D"]
 
 
-class QuestionRequest(BaseModel):
-    category: Category
-
-
 class Option(BaseModel):
     id: OptionId
     text: str
 
 
 class GeneratedQuestion(BaseModel):
+    category: Category
     question: str
     options: list[Option]
     correct_answer: OptionId
@@ -36,5 +33,5 @@ class GeneratedQuestion(BaseModel):
         return self
 
 
-class Question(GeneratedQuestion):
-    category: Category
+class QuestionSet(BaseModel):
+    questions: list[GeneratedQuestion]

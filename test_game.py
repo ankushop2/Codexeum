@@ -9,6 +9,18 @@ import app
 import game
 
 
+def generated_questions(first, second, other):
+    return [
+        {
+            "category": category,
+            "prompt": f"Question {index}",
+            "options": ["yes", "no"],
+            "answer": 0,
+        }
+        for index, category in enumerate([first, first, second, second, other])
+    ]
+
+
 class MemoryStore:
     def __init__(self):
         self.games = {}
@@ -36,6 +48,9 @@ class MemoryStore:
 class GameTests(unittest.TestCase):
     def setUp(self):
         self.store = MemoryStore()
+        generator = patch("game.generate_questions", side_effect=generated_questions)
+        generator.start()
+        self.addCleanup(generator.stop)
         self.first = game.create_game(self.store, "python")
         self.code = self.first["code"]
         self.second = game.join_game(self.store, self.code, "web")
@@ -102,6 +117,27 @@ class GameTests(unittest.TestCase):
             None if scores[0] == scores[1] else scores.index(max(scores)),
         )
 
+    def test_scores_hidden_until_round_resolves(self):
+        current = json.loads(self.store.get(self.code))
+        correct = current["questions"][0]["answer"]
+        after_answer = game.answer_game(
+            self.store, self.code, self.tokens[0], 1, correct
+        )
+        opponent_view = game.get_game(self.store, self.code, self.tokens[1])
+        self.assertEqual([p["score"] for p in after_answer["players"]], [0, 0])
+        self.assertEqual([p["score"] for p in opponent_view["players"]], [0, 0])
+        finished = game.answer_game(self.store, self.code, self.tokens[1], 1, 1)
+        self.assertGreater(finished["players"][0]["score"], 0)
+        self.assertEqual(finished["history"][0]["answers"], [True, False])
+
+    def test_scores_revealed_after_timeout(self):
+        current = json.loads(self.store.get(self.code))
+        game.answer_game(self.store, self.code, self.tokens[0], 1, 0)
+        with patch("game.time.time", return_value=current["deadline"]):
+            state = game.get_game(self.store, self.code, self.tokens[1])
+        self.assertGreater(state["players"][0]["score"], 0)
+        self.assertEqual(state["history"][0]["answers"], [True, None])
+
     def test_authentication_and_invalid_inputs(self):
         with self.assertRaises(game.GameError):
             game.get_game(self.store, self.code, "invalid")
@@ -113,6 +149,9 @@ class GameTests(unittest.TestCase):
 class ApiTests(unittest.TestCase):
     def setUp(self):
         self.store = MemoryStore()
+        generator = patch("game.generate_questions", side_effect=generated_questions)
+        generator.start()
+        self.addCleanup(generator.stop)
         self.patcher = patch.object(app, "store", self.store)
         self.patcher.start()
         self.addCleanup(self.patcher.stop)

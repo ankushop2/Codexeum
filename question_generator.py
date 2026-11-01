@@ -1,9 +1,10 @@
 import os
+from collections import Counter
 
 from openai import APIError, OpenAI
 from pydantic import ValidationError
 
-from models import Category, GeneratedQuestion, Question
+from models import QuestionSet
 
 
 class GenerationError(Exception):
@@ -14,7 +15,7 @@ class ConfigurationError(GenerationError):
     pass
 
 
-def generate_question(category: Category) -> Question:
+def generate_questions(first_category, second_category, random_category):
     if not os.getenv("OPENAI_API_KEY"):
         raise ConfigurationError("OPENAI_API_KEY is not configured on the server.")
     try:
@@ -25,18 +26,41 @@ def generate_question(category: Category) -> Question:
                 {
                     "role": "system",
                     "content": (
-                        "Create one clear, moderately difficult multiple-choice question. "
-                        "Include exactly four distinct options with IDs A, B, C, and D, "
-                        "one unambiguously correct answer, and three plausible incorrect answers. "
-                        "Use concise plain text; short code snippets are welcome when appropriate."
+                        "Create five distinct, clear, moderately difficult multiple-choice quiz questions. "
+                        "Each must have exactly four distinct options labelled A, B, C and D, "
+                        "one unambiguously correct answer and three plausible incorrect answers. "
+                        "Use concise plain text and ensure every answer is factually correct. "
+                        "Return each question with its requested category."
                     ),
                 },
-                {"role": "user", "content": f"Category: {category}"},
+                {
+                    "role": "user",
+                    "content": f"Create two questions in {first_category}, two in {second_category}, and one in {random_category}.",
+                },
             ],
-            text_format=GeneratedQuestion,
+            text_format=QuestionSet,
         )
-        if response.output_parsed is None:
-            raise GenerationError("The model did not return a complete question.")
-        return Question(category=category, **response.output_parsed.model_dump())
+        parsed = response.output_parsed
+        if parsed is None:
+            raise GenerationError("The model did not return complete questions.")
+        expected = Counter({first_category: 2, second_category: 2, random_category: 1})
+        if Counter(q.category for q in parsed.questions) != expected:
+            raise GenerationError(
+                "The model returned an invalid category distribution."
+            )
+        if len({q.question.strip().casefold() for q in parsed.questions}) != 5:
+            raise GenerationError("The model returned duplicate questions.")
+        questions = []
+        for question in parsed.questions:
+            options = sorted(question.options, key=lambda option: option.id)
+            questions.append(
+                {
+                    "category": question.category,
+                    "prompt": question.question,
+                    "options": [option.text for option in options],
+                    "answer": ord(question.correct_answer) - ord("A"),
+                }
+            )
+        return questions
     except (APIError, ValidationError) as exc:
         raise GenerationError("Question generation failed. Please try again.") from exc

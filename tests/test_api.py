@@ -5,13 +5,16 @@ from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
 import app as api
+import game
 import question_generator
-from models import GeneratedQuestion, Question
+from models import GeneratedQuestion, QuestionSet
+from test_game import MemoryStore
 
 
 @pytest.fixture
 def sample():
     return {
+        "category": "python",
         "question": "What is 1 + 1?",
         "options": [
             {"id": "A", "text": "1"},
@@ -21,21 +24,6 @@ def sample():
         ],
         "correct_answer": "B",
     }
-
-
-def test_api_returns_question(monkeypatch, sample):
-    monkeypatch.setattr(
-        api, "generate_question", lambda category: Question(category=category, **sample)
-    )
-    client = TestClient(api.app)
-    assert client.get("/api/health").json()["status"] == "ok"
-    assert len(client.get("/api/skills").json()["skills"]) == 7
-    response = client.post("/api/questions", json={"category": "python"})
-    assert response.status_code == 200
-    assert response.json() == {"category": "python", **sample}
-    assert (
-        client.post("/api/questions", json={"category": "unknown"}).status_code == 422
-    )
 
 
 def test_invalid_generated_questions(sample):
@@ -48,24 +36,45 @@ def test_invalid_generated_questions(sample):
         GeneratedQuestion(**sample)
 
 
-def test_generator_calls_openai(monkeypatch, sample):
+def test_generator_requests_five_questions(monkeypatch, sample):
     monkeypatch.setenv("OPENAI_API_KEY", "test")
     client = Mock()
-    client.responses.parse.return_value.output_parsed = GeneratedQuestion(**sample)
+    categories = ["python", "python", "web", "web", "logic"]
+    questions = [
+        GeneratedQuestion(
+            **{**sample, "category": category, "question": f"Question {i}"}
+        )
+        for i, category in enumerate(categories)
+    ]
+    client.responses.parse.return_value.output_parsed = QuestionSet(questions=questions)
     monkeypatch.setattr(question_generator, "OpenAI", lambda **kwargs: client)
-    assert question_generator.generate_question("logic").category == "logic"
-    assert client.responses.parse.call_args.kwargs["text_format"] is GeneratedQuestion
+    result = question_generator.generate_questions("python", "web", "logic")
+    assert [q["category"] for q in result] == categories
+    assert all(q["answer"] == 1 for q in result)
+    assert client.responses.parse.call_args.kwargs["text_format"] is QuestionSet
+    with pytest.raises(question_generator.GenerationError):
+        question_generator.generate_questions("python", "web", "data")
 
 
-def test_generation_errors(monkeypatch):
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-    client = TestClient(api.app)
-    assert client.post("/api/questions", json={"category": "python"}).status_code == 503
+def test_join_generation_failure_leaves_room_waiting(monkeypatch):
+    store = MemoryStore()
+    monkeypatch.setattr(api, "store", store)
 
-    def fail(category):
+    def fail(*args):
         raise question_generator.GenerationError("Generation failed")
 
-    monkeypatch.setattr(api, "generate_question", fail)
-    response = client.post("/api/questions", json={"category": "python"})
-    assert response.status_code == 502
-    assert response.json()["detail"] == "Generation failed"
+    monkeypatch.setattr(game, "generate_questions", fail)
+    client = TestClient(api.app)
+    first = client.post("/api/games", json={"category": "python"}).json()
+    result = client.post(f"/api/games/{first['code']}/join", json={"category": "web"})
+    assert result.status_code == 502
+    state = client.get(
+        f"/api/games/{first['code']}",
+        headers={"Authorization": "Bearer " + first["token"]},
+    )
+    assert state.json()["phase"] == "waiting"
+    assert len(state.json()["players"]) == 1
+    assert client.post("/api/questions", json={"category": "python"}).status_code in (
+        404,
+        405,
+    )

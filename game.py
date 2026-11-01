@@ -5,64 +5,9 @@ import time
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 
-QUESTIONS = {
-    "python": [
-        ("Which keyword defines a function in Python?", ["def", "func", "function"], 0),
-        ("Which Python type is mutable?", ["tuple", "list", "string"], 1),
-    ],
-    "javascript": [
-        (
-            "Which keyword declares a block-scoped variable?",
-            ["let", "var", "define"],
-            0,
-        ),
-        (
-            "What does JSON.parse return?",
-            ["A JavaScript value", "A JSON string", "A CSS rule"],
-            0,
-        ),
-    ],
-    "debugging": [
-        (
-            "What does a breakpoint do?",
-            ["Pauses execution", "Deletes code", "Restarts the computer"],
-            0,
-        ),
-        (
-            "What helps reproduce a bug?",
-            ["Repeatable steps", "Random changes", "Deleting logs"],
-            0,
-        ),
-    ],
-    "logic": [
-        ("What follows 2, 4, 6?", ["8", "9", "12"], 0),
-        ("If all cats are animals, is a cat an animal?", ["Yes", "No", "Never"], 0),
-    ],
-    "web": [
-        ("Which protocol commonly loads web pages?", ["HTTP", "SSH", "SMTP"], 0),
-        (
-            "What does HTML describe?",
-            ["Page structure", "Database indexes", "Network cables"],
-            0,
-        ),
-    ],
-    "data": [
-        ("Which SQL clause filters rows?", ["WHERE", "ORDER BY", "SELECT"], 0),
-        ("What is the average of 2 and 4?", ["3", "6", "2"], 0),
-    ],
-    "security": [
-        (
-            "Which is best for storing passwords?",
-            ["A password hash", "Plain text", "A public file"],
-            0,
-        ),
-        (
-            "What does HTTPS add to HTTP?",
-            ["Encryption in transit", "A faster CPU", "A database"],
-            0,
-        ),
-    ],
-}
+from question_generator import generate_questions
+
+CATEGORIES = ("debugging", "python", "javascript", "logic", "web", "data", "security")
 TTL = 3600
 CAS = "if redis.call('GET', KEYS[1]) == ARGV[1] then redis.call('SET', KEYS[1], ARGV[2], 'EX', ARGV[3]); return 1 else return 0 end"
 
@@ -141,7 +86,7 @@ def create_game(store, category):
 
 
 def validate_category(category):
-    if not isinstance(category, str) or category not in QUESTIONS:
+    if not isinstance(category, str) or category not in CATEGORIES:
         raise GameError("Invalid category", 400)
 
 
@@ -182,36 +127,27 @@ def update(store, code, action):
 def join_game(store, code, category):
     validate_category(category)
 
+    raw = store.get(code)
+    if raw is None:
+        raise GameError("Game not found or expired", 404)
+    existing = json.loads(raw)
+    if existing["phase"] != "waiting":
+        raise GameError("Game is full", 409)
+    first_category = existing["players"][0]["category"]
+    if first_category == category:
+        raise GameError("Choose a different category", 400)
+    other = secrets.choice(
+        [c for c in CATEGORIES if c not in (category, first_category)]
+    )
+    questions = generate_questions(first_category, category, other)
+    secrets.SystemRandom().shuffle(questions)
+
     def action(game, now):
         if game["phase"] != "waiting":
             raise GameError("Game is full", 409)
-        if game["players"][0]["category"] == category:
-            raise GameError("Choose a different category", 400)
         second = player(category)
         game["players"].append(second)
-        other = secrets.choice(
-            [
-                c
-                for c in QUESTIONS
-                if c not in (category, game["players"][0]["category"])
-            ]
-        )
-        categories = [game["players"][0]["category"]] * 2 + [category] * 2 + [other]
-        offsets = {}
-        game["questions"] = []
-        for cat in categories:
-            index = offsets.get(cat, 0)
-            prompt, options, answer = QUESTIONS[cat][index]
-            game["questions"].append(
-                {
-                    "category": cat,
-                    "prompt": prompt,
-                    "options": options,
-                    "answer": answer,
-                }
-            )
-            offsets[cat] = index + 1
-        secrets.SystemRandom().shuffle(game["questions"])
+        game["questions"] = questions
         game["phase"] = "playing"
         game["deadline"] = now + 10
         return lambda game, now: {"code": code, "token": second["token"]}
@@ -231,7 +167,21 @@ def view(game, now, index):
         "code": game["code"],
         "phase": game["phase"],
         "players": [
-            {"category": p["category"], "score": p["score"]} for p in game["players"]
+            {
+                "category": p["category"],
+                "score": p["score"]
+                - (
+                    (
+                        2
+                        if p["category"] == game["questions"][game["round"]]["category"]
+                        else 5
+                    )
+                    if game["phase"] == "playing"
+                    and game["answers"].get(str(i), {}).get("correct")
+                    else 0
+                ),
+            }
+            for i, p in enumerate(game["players"])
         ],
         "you": index,
         "server_time": now,

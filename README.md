@@ -14,13 +14,13 @@ The intended experience takes inspiration from retro creature battles: two pets 
 4. Help your pet when it cannot answer. Human intervention is part of the battle; its limits and scoring are still being designed.
 5. Reveal the answers and resolve the attacks. See the match result and compete on a nickname-based leaderboard.
 
-Room events and round updates are intended to reach both players in real time over sockets. Pet imports refer to avatar artwork, not access to a player's Codex account or conversation history.
+Clients can poll the game API for room and round updates. Pet imports refer to avatar artwork, not access to a player's Codex account or conversation history.
 
 ## Current status
 
-The frontend provides pet selection and image import, trainer naming, specialty selection, and a ready screen with practice question generation.
+The frontend provides pet selection and image import, trainer naming, specialty selection, and a ready screen.
 
-The game API supports rooms, five timed rounds and scoring with fixed questions. The multiplayer frontend is not connected yet. Practice questions use OpenAI; pet answers, human assists and the leaderboard are not implemented.
+The game API supports rooms, five timed rounds and scoring with OpenAI-generated questions. The multiplayer frontend is not connected yet; pet answers, human assists and the leaderboard are not implemented.
 
 ## Stack
 
@@ -48,7 +48,7 @@ Open http://localhost:5173. Vite forwards `/api` to FastAPI on port 5001. Set `O
 - HealthBar with accessible progress values.
 - PetAvatar with original CSS placeholder creatures and idle animation.
 - SkillCard with keyboard focus and selected state.
-- Seven categories fetched from `/api/skills`, plus `/api/health` and `POST /api/questions`.
+- Seven categories fetched from `/api/skills`, plus `/api/health`.
 - Responsive arena preview with explicit loading/error states.
 
 ## Basic checks
@@ -82,7 +82,7 @@ The same image can also run on other container hosts. The app works without a se
 
 ## Integration boundaries
 
-The practice prototype returns answer keys to the client for inspection. Multiplayer game answers remain on the server. Shared games use Redis and expire after inactivity; polling delivers updates to clients. Add durable storage if a leaderboard is needed.
+Multiplayer game answers remain on the server. Shared games use Redis and expire after inactivity; polling delivers updates to clients. Add durable storage if a leaderboard is needed.
 
 Pet artwork is presentation only; importing an avatar does not import a model, conversation, or account credentials. Replace PetAvatar with original or licensed sprites when ready.
 
@@ -90,26 +90,16 @@ Pet artwork is presentation only; importing an avatar does not import a model, c
 
 Created during the DevDay Community Hackathon in London on 1 November 2026. React/TypeScript scaffold generated using create-vite. Codex helped write the React primitives, FastAPI routes, and deployment configuration. The included pets are original CSS placeholders. No Pokémon assets are bundled. DM Sans and Space Grotesk are loaded from Google Fonts with system fallbacks. Dependencies retain their respective licenses.
 
-## Generate a question
-
-With the server running and an API key configured:
-
-```sh
-curl -X POST http://localhost:5001/api/questions \
-  -H 'Content-Type: application/json' \
-  -d '{"category":"python"}'
-```
-
-The response includes `category`, `question`, four options with IDs A–D, and `correct_answer`. The API validates the response structure, but generated answers should be reviewed for accuracy. FastAPI's interactive API documentation is available at `/docs`. For Docker, pass credentials with `--env-file .env`.
-
 ## Game API
 
 Set `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` to an Upstash Redis database in Vercel and in the local environment. The preview still works without them; game endpoints return 503 without storage. Games expire after one hour without activity.
 
 - `POST /api/games` with `{"category":"python"}` creates a game and returns its code and player token.
-- `POST /api/games/{code}/join` with `{"category":"web"}` joins it and returns the second token. Players must choose different categories.
+- `POST /api/games/{code}/join` with `{"category":"web"}` generates five questions using OpenAI, then joins and returns the second token. Players must choose different categories. Generation failure leaves the room waiting so the join can be retried.
 - `GET /api/games/{code}` returns the current state. Send `Authorization: Bearer <player token>` and poll approximately once per second.
 - `POST /api/games/{code}/answers` with the same authorization and `{"round":1,"answer":0}` submits a zero-based option index.
+
+Set `OPENAI_API_KEY` and optionally `OPENAI_MODEL` (default `gpt-4o-mini`) on the server. Questions are generated when the second player joins; the 10-second timer begins after generation. Generated answers can still be factually wrong. Scores become visible when each round resolves.
 
 Round deadlines and `server_time` are Unix timestamps in seconds. Show a local countdown using their difference; the server rejects late answers. A poll or other request resolves an expired round and starts the next one. `history` reports correctness for each player, with `null` for a timeout. `winner` is a zero-based player index or `null` for a draw. Player tokens are credentials and should be kept private. The current frontend is still an arena preview; these endpoints are ready for a game client.
 

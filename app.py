@@ -1,10 +1,9 @@
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 
 from dotenv import load_dotenv
 from fastapi import Body, FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 
 from game import (
     GameError,
@@ -15,8 +14,7 @@ from game import (
     get_game,
     join_game,
 )
-from models import Question, QuestionRequest
-from question_generator import ConfigurationError, GenerationError, generate_question
+from question_generator import ConfigurationError, GenerationError
 
 load_dotenv()
 PUBLIC = Path(__file__).parent / "public"
@@ -43,22 +41,22 @@ def skills():
     return {"skills": SKILLS}
 
 
-@app.post("/api/questions", response_model=Question)
-def question(request: QuestionRequest):
-    try:
-        return generate_question(request.category)
-    except ConfigurationError as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
-    except GenerationError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
-
-
 store = RedisStore()
 
 
 @app.exception_handler(GameError)
 async def game_error(request: Request, error: GameError):
     return JSONResponse({"error": error.message}, status_code=error.status)
+
+
+@app.exception_handler(ConfigurationError)
+async def configuration_error(request: Request, error: ConfigurationError):
+    return JSONResponse({"error": str(error)}, status_code=503)
+
+
+@app.exception_handler(GenerationError)
+async def generation_error(request: Request, error: GenerationError):
+    return JSONResponse({"error": str(error)}, status_code=502)
 
 
 @app.exception_handler(StoreUnavailable)
@@ -77,12 +75,12 @@ def token(request: Request):
 
 
 @app.post("/api/games", status_code=201)
-def create(data: Any = Body(default=None)):
+def create(data: Annotated[Any, Body()] = None):
     return create_game(store, body(data).get("category"))
 
 
 @app.post("/api/games/{code}/join")
-def join(code: str, data: Any = Body(default=None)):
+def join(code: str, data: Annotated[Any, Body()] = None):
     return join_game(store, code.upper(), body(data).get("category"))
 
 
@@ -95,7 +93,7 @@ def state(code: str, request: Request):
 
 
 @app.post("/api/games/{code}/answers")
-def answer(code: str, request: Request, data: Any = Body(default=None)):
+def answer(code: str, request: Request, data: Annotated[Any, Body()] = None):
     data = body(data)
     return answer_game(
         store, code.upper(), token(request), data.get("round"), data.get("answer")
