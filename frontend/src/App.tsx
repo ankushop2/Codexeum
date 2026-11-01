@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, CSSProperties } from "react";
 
+import GameRoom from "./GameRoom";
+
 type Skill = { id: string; name: string; symbol: string };
 
 type Pet = { name: string; color: string; image?: string };
@@ -169,7 +171,7 @@ export default function App() {
               ? "CHOOSE YOUR COMPANION"
               : step === 1
                 ? "CHOOSE YOUR SPECIALTY"
-                : "TRAINER CARD"}
+                : "LINK BATTLE"}
           </span>
           <span>LV. 01</span>
         </div>
@@ -267,19 +269,12 @@ export default function App() {
               </p>
             </div>
           ) : (
-            <div className="ready-screen">
-              <span className="ready-star">✦</span>
-              <h2>{nickname || "TRAINER"}</h2>
-              <p>COMPANION: {pet.name}</p>
-              <p>
-                SPECIALTY: {skills.find((skill) => skill.id === selected)?.name}
-              </p>
-              <div className="ready-label">LOADOUT SAVED FOR THIS SESSION</div>
-              <p className="ready-note">
-                Your companion is ready. Online rooms and battles are coming
-                next.
-              </p>
-            </div>
+            <GameRoom
+              category={selected}
+              nickname={nickname}
+              petName={pet.name}
+              onBack={() => setStep(1)}
+            />
           )}
         </div>
         <div className="dialogue">
@@ -288,8 +283,8 @@ export default function App() {
             {step === 0
               ? "Every great trainer starts with a companion. Pick a starter, or bring your own Codex pet."
               : step === 1
-                ? "Five questions. Two pets. You can step in when your companion needs a helping hand."
-                : "Your team is assembled! Return to change your pet or specialty before the battle system goes live."}
+                ? "Five questions. Two pets. Choose answers to power your companion. Codex assistance is coming later."
+                : "Share a room code with your rival. Five questions, ten seconds each. The second player joining starts the battle!"}
             <span className="cursor">▼</span>
           </p>
         </div>
@@ -390,7 +385,7 @@ export default function App() {
               I CHOOSE YOU! <span>→</span>
             </button>
           </>
-        ) : (
+        ) : step === 1 ? (
           <div className="step-actions">
             <button
               className="retro-button secondary"
@@ -408,7 +403,7 @@ export default function App() {
               </button>
             )}
           </div>
-        )}
+        ) : null}
       </section>
       <footer>
         <span>5 ROUNDS. 2 PETS. 1 WINNER.</span>
