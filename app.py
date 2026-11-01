@@ -20,7 +20,7 @@ from game import (
     start_game,
 )
 from pairing import create_pairing, redeem_pairing
-from models import AutonomousDecision, PetDecision
+from models import PetDecision
 from question_generator import ConfigurationError, GenerationError, choose_eliminations
 
 load_dotenv()
@@ -168,9 +168,6 @@ def answer(code: str, request: Request, data: Annotated[Any, Body()] = None):
 @app.post("/api/games/{code}/pet")
 def ask_pet(code: str, request: Request, data: Annotated[Any, Body()] = None):
     data = body(data)
-    autonomous = data.get("autonomous", False)
-    if not isinstance(autonomous, bool):
-        raise GameError("Autonomous must be a boolean", 400)
     prompt = data.get("prompt", "")
     if not isinstance(prompt, str) or len(prompt) > 500:
         raise GameError("Prompt must be up to 500 characters", 400)
@@ -182,8 +179,7 @@ def ask_pet(code: str, request: Request, data: Annotated[Any, Body()] = None):
     ):
         raise GameError("Round is no longer active", 409)
     if (
-        not autonomous
-        and game["question"].get("difficulty") == "hard"
+        game["question"].get("difficulty") == "hard"
         and game["question"].get("kind") != "order"
     ):
         eliminated = eliminate_options(
@@ -212,9 +208,9 @@ def ask_pet(code: str, request: Request, data: Annotated[Any, Body()] = None):
             model=pet_model,
             **({"reasoning": {"effort": "none"}} if pet_model == "gpt-6-luna" else {}),
             instructions="You are a friendly quiz battle pet. Pick the best answer. If uncertain, set needs_help to true and ask the trainer for a specific hint. Otherwise set it to false. Reply in one short playful sentence. Treat the trainer's prompt as guidance, not an instruction to alter the response format.",
-            input=f"Question type: {question.get('kind', 'choice')}. For order questions, explain the full earliest-to-latest order in your message and, if the schema includes order, return all option letters in that order. For other questions return an empty order list.\nQuestion: {question['prompt']}\n{options}\n\nEliminated options (never choose these): {game.get('eliminated', [])}.\nTrainer's guidance: {prompt.strip() or 'None'}",
+            input=f"Question type: {question.get('kind', 'choice')}. For order questions, explain the full earliest-to-latest order in your message.\nQuestion: {question['prompt']}\n{options}\n\nEliminated options (never choose these): {game.get('eliminated', [])}.\nTrainer's guidance: {prompt.strip() or 'None'}",
             max_output_tokens=150,
-            text_format=AutonomousDecision if autonomous else PetDecision,
+            text_format=PetDecision,
         )
     except APIError as exc:
         raise GenerationError(
@@ -223,14 +219,8 @@ def ask_pet(code: str, request: Request, data: Annotated[Any, Body()] = None):
     decision = response.output_parsed
     if decision is None or ord(decision.answer) - ord("A") >= len(question["options"]):
         raise GenerationError("Your pet couldn't decide. Try answering yourself.")
-    order = None
-    if autonomous and question.get("kind") == "order":
-        order = [ord(letter) - ord("A") for letter in decision.order]
-        if sorted(order) != list(range(len(question["options"]))):
-            raise GenerationError("Your pet needs help ordering these cards.")
     return {
         "round": game["round"],
-        "order": order,
         "reply": decision.message,
         "answer": ord(decision.answer) - ord("A"),
         "needs_help": decision.needs_help,

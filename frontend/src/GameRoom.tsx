@@ -115,13 +115,6 @@ export default function GameRoom({
   const [pairing, setPairing] = useState("");
   const [remaining, setRemaining] = useState(0);
   const [fatal, setFatal] = useState(false);
-  const [autonomous, setAutonomous] = useState(false);
-  const [planExpanded, setPlanExpanded] = useState(false);
-  const [starterPrompt, setStarterPrompt] = useState(
-    "Read the question carefully, compare every option, and explain your best pick in one short sentence. Ask me for help if you are unsure.",
-  );
-  const [activePrompt, setActivePrompt] = useState("");
-  const [autoCountdown, setAutoCountdown] = useState<number | null>(null);
   const [petPrompt, setPetPrompt] = useState("");
   const [petBusy, setPetBusy] = useState(false);
   const [petReply, setPetReply] = useState<{
@@ -130,8 +123,6 @@ export default function GameRoom({
     answer: number | null;
     needsHelp: boolean;
     guided: boolean;
-    autonomous?: boolean;
-    order?: number[] | null;
   } | null>(null);
   const petAttempt = useRef("");
   const petRequest = useRef(0);
@@ -380,7 +371,7 @@ export default function GameRoom({
       return;
     const round = game.round;
     const request = ++petRequest.current;
-    petAttempt.current = `${session.code}:${round}:${autonomous}`;
+    petAttempt.current = `${session.code}:${round}`;
     setPetBusy(true);
     setPetReply(null);
     if (prompt.trim()) setPetPrompt("");
@@ -391,18 +382,11 @@ export default function GameRoom({
         answer: number | null;
         eliminated?: number[];
         needs_help: boolean;
-        order?: number[] | null;
       }>(
         `/${session.code}/pet`,
         {
           method: "POST",
-          body: JSON.stringify({
-            round,
-            prompt: autonomous
-              ? `Starting instructions: ${activePrompt.slice(0, 200)}\nThis round: ${prompt.trim().slice(0, 250)}`
-              : prompt.trim(),
-            autonomous,
-          }),
+          body: JSON.stringify({ round, prompt: prompt.trim() }),
         },
         session.token,
       );
@@ -420,8 +404,6 @@ export default function GameRoom({
         answer: result.answer,
         needsHelp: result.needs_help,
         guided: !!prompt.trim(),
-        autonomous,
-        order: result.order,
       });
     } catch (error) {
       if (request !== petRequest.current) return;
@@ -446,14 +428,13 @@ export default function GameRoom({
       game.answered ||
       !game.question ||
       game.players[game.you]?.controller === "codex" ||
-      (!autonomous &&
-        (game.question.difficulty === "hard" ||
-          game.question.category === game.players[game.you]?.category ||
-          remaining > 15)) ||
+      game.question.difficulty === "hard" ||
+      game.question.category === game.players[game.you]?.category ||
+      remaining > 15 ||
       remaining === 0
     )
       return;
-    const key = `${session.code}:${game.round}:${autonomous}`;
+    const key = `${session.code}:${game.round}`;
     if (petAttempt.current === key) return;
     petAttempt.current = key;
     void askPet();
@@ -462,57 +443,8 @@ export default function GameRoom({
     game?.phase,
     game?.round,
     game?.answered,
-    autonomous,
     remaining <= 15,
     remaining === 0,
-  ]);
-
-  useEffect(() => {
-    setAutoCountdown(null);
-    if (
-      !autonomous ||
-      !session ||
-      game?.phase !== "playing" ||
-      game.answered ||
-      game.players[game.you]?.controller === "codex" ||
-      !petReply?.autonomous ||
-      petReply.round !== game.round ||
-      petReply.needsHelp ||
-      petReply.answer === null ||
-      petBusy ||
-      petPrompt.trim() ||
-      remaining === 0 ||
-      fatal ||
-      busy
-    )
-      return;
-    let seconds = 5;
-    setAutoCountdown(seconds);
-    const timer = setInterval(() => {
-      seconds -= 1;
-      setAutoCountdown(seconds);
-      if (seconds === 0) {
-        clearInterval(timer);
-        void answer(
-          petReply.order ?? petReply.answer!,
-          petReply.guided ? "team" : "pet",
-        );
-      }
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [
-    autonomous,
-    session,
-    game?.phase,
-    game?.round,
-    game?.answered,
-    game?.players[game.you]?.controller,
-    petReply,
-    petBusy,
-    petPrompt,
-    remaining === 0,
-    fatal,
-    busy,
   ]);
 
   useEffect(() => {
@@ -582,140 +514,6 @@ export default function GameRoom({
           ? `${rivalPetName} landed a hit! The rival's move was super effective!`
           : "Neither move landed!"
     : null;
-  const autopilotPanel = mine?.controller !== "codex" && (
-    <section
-      className={`autopilot-panel ${autonomous ? "is-active" : ""}`}
-      aria-labelledby="autopilot-title"
-    >
-      <div className="autopilot-heading">
-        <div>
-          <span className="autopilot-eyebrow">TRAINER CONTROL ROOM</span>
-          <h2 id="autopilot-title">Let {myPetName} take the lead</h2>
-          <p>
-            Give your pet a game plan. Watch it think, then steer its next move.
-          </p>
-        </div>
-        <span className="autopilot-badge" role="status">
-          {autonomous ? "● AUTOPILOT ON" : "○ YOU’RE IN CONTROL"}
-        </span>
-      </div>
-      <button
-        type="button"
-        className="text-button autopilot-plan-toggle"
-        aria-expanded={planExpanded}
-        aria-controls="autopilot-plan"
-        onClick={() => setPlanExpanded(!planExpanded)}
-      >
-        {planExpanded
-          ? "HIDE GAME PLAN ↑"
-          : "EDIT STARTING PROMPT + STRATEGIES ↓"}
-      </button>
-      <div className={`autopilot-layout ${planExpanded ? "" : "is-compact"}`}>
-        <div
-          className="autopilot-brief"
-          id="autopilot-plan"
-          hidden={!planExpanded}
-        >
-          <label htmlFor="starter-prompt">
-            YOUR PET’S STARTING INSTRUCTIONS
-          </label>
-          <textarea
-            id="starter-prompt"
-            value={starterPrompt}
-            maxLength={200}
-            rows={3}
-            onChange={(event) => {
-              setStarterPrompt(event.target.value);
-              setAutonomous(false);
-            }}
-            placeholder="How should your pet approach each question?"
-            aria-describedby="starter-prompt-help"
-          />
-          <p id="starter-prompt-help">
-            Used every round. Editing pauses autopilot; start again to apply
-            your new plan.
-          </p>
-          <div
-            className="autopilot-suggestions"
-            aria-label="Suggested multiple-choice techniques"
-          >
-            {[
-              [
-                "Rule out wrong answers",
-                "Compare all options. Rule out choices that contradict the question, then explain the best remaining answer briefly.",
-              ],
-              [
-                "Find the key clue",
-                "Look for the key clue in the question. Watch for words like NOT, EXCEPT, always and never. Use the clue to compare every option.",
-              ],
-              [
-                "Work it out first",
-                "Work out the answer before looking at the options. Then match your result to the closest correct choice. Check units and calculations.",
-              ],
-              [
-                "Ask when unsure",
-                "Compare every option carefully. If two choices still seem plausible, ask me for a useful clue instead of guessing.",
-              ],
-            ].map(([label, prompt]) => (
-              <button
-                key={label}
-                type="button"
-                className="autopilot-chip"
-                aria-pressed={starterPrompt === prompt}
-                onClick={() => {
-                  setStarterPrompt(prompt);
-                  setAutonomous(false);
-                }}
-              >
-                {label} ↗
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="autopilot-controls">
-          <ol>
-            <li>Pet proposes a pick.</li>
-            <li>You get 5 seconds to steer.</li>
-            <li>Pet submits · 2 points if correct.</li>
-          </ol>
-          <button
-            type="button"
-            className={`retro-button ${autonomous ? "secondary" : "primary"}`}
-            aria-pressed={autonomous}
-            disabled={game?.phase === "finished" || fatal}
-            onClick={() => {
-              if (autonomous) {
-                setAutonomous(false);
-                return;
-              }
-              petRequest.current += 1;
-              petAttempt.current = "";
-              setPetBusy(false);
-              setPetReply(null);
-              setActivePrompt(starterPrompt.trim());
-              setAutonomous(true);
-              setPlanExpanded(false);
-            }}
-          >
-            {autonomous ? "Ⅱ PAUSE AUTOPILOT" : "▶ START PET AUTOPILOT"}
-          </button>
-          <p className="autopilot-status" role="status" aria-live="polite">
-            {!autonomous
-              ? "Answer yourself for 5 points, or let your pet play."
-              : petPrompt.trim()
-                ? "Paused while you write. Send your guidance to continue."
-                : autoCountdown !== null
-                  ? `Pet’s pick locks in ${autoCountdown}s. Type below to steer!`
-                  : petBusy
-                    ? `${myPetName} is considering the options…`
-                    : petReply?.round === game?.round && petReply?.needsHelp
-                      ? "Your pet needs a clue. Guide it below or pick an answer."
-                      : "Ready for the next question. Keep this tab open."}
-          </p>
-        </div>
-      </div>
-    </section>
-  );
   return (
     <section
       className={`room-panel ${game?.phase === "playing" ? "is-playing" : ""}`}
@@ -725,9 +523,6 @@ export default function GameRoom({
           {error}
         </p>
       )}
-      {game?.phase !== "playing" &&
-        game?.phase !== "finished" &&
-        autopilotPanel}
       {!session ? (
         <>
           <div className="room-loadout">
@@ -1089,23 +884,7 @@ export default function GameRoom({
                                   ? `: TRY ${String.fromCharCode(65 + petReply.answer)}`
                                   : ":"}
                               </strong>
-                              {petReply.order && (
-                                <p>
-                                  MY ORDER:{" "}
-                                  {petReply.order
-                                    .map(
-                                      (index) => game.question!.options[index],
-                                    )
-                                    .join(" → ")}
-                                </p>
-                              )}
                               <p>{petReply.text.replace(/\*\*|__|`/g, "")}</p>
-                              {autonomous && autoCountdown !== null && (
-                                <p role="status">
-                                  Locks in {autoCountdown}s. Type guidance below
-                                  to pause.
-                                </p>
-                              )}
                               <p>
                                 {(game.eliminated || []).length > 0
                                   ? "Two wrong options eliminated. A correct answer with help earns 2 points."
@@ -1187,24 +966,20 @@ export default function GameRoom({
                                 : "Choose your answer before time runs out."}
                         </p>
                         <div
-                          className={`pet-prompt ${(autonomous || game.question.category !== mine?.category || game.question.difficulty === "hard") && !game.answered && remaining > 0 ? "pet-help-panel" : ""}`}
+                          className={`pet-prompt ${(game.question.category !== mine?.category || game.question.difficulty === "hard") && !game.answered && remaining > 0 ? "pet-help-panel" : ""}`}
                         >
-                          {(autonomous ||
-                            game.question.category !== mine?.category ||
+                          {(game.question.category !== mine?.category ||
                             game.question.difficulty === "hard") &&
                             !game.answered &&
                             remaining > 0 && (
                               <>
                                 <label htmlFor="pet-prompt">
-                                  ✦ {autonomous ? "STEER" : "ASK"}{" "}
-                                  {myPetName.toUpperCase()}!
+                                  ✦ ASK {myPetName.toUpperCase()}!
                                 </label>
                                 <p>
-                                  {autonomous
-                                    ? "Tell your pet how to approach this question. Typing pauses submission; send guidance for a new pick."
-                                    : game.question.difficulty === "hard"
-                                      ? "Ask your pet for a 50/50 hint: two wrong options will be eliminated."
-                                      : "Your learning buddy is ready to help. Ask for a clue or a suggestion."}
+                                  {game.question.difficulty === "hard"
+                                    ? "Ask your pet for a 50/50 hint: two wrong options will be eliminated."
+                                    : "Your learning buddy is ready to help. Ask for a clue or a suggestion."}
                                 </p>
                                 <textarea
                                   id="pet-prompt"
@@ -1239,10 +1014,7 @@ export default function GameRoom({
                                 </button>
                                 <p>
                                   A correct answer with pet advice earns 2
-                                  points.{" "}
-                                  {autonomous
-                                    ? "Your pet submits unless you pause or take over."
-                                    : "You choose the final answer."}
+                                  points. You choose the final answer.
                                 </p>
                               </>
                             )}
@@ -1250,7 +1022,6 @@ export default function GameRoom({
                         <p className="scoring-note">
                           Correct: 5 points on your own, 2 with your pet’s help.
                         </p>
-                        {autopilotPanel}
                       </>
                     )}
                     {game.phase === "finished" && (

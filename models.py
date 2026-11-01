@@ -51,7 +51,3 @@ class PetDecision(BaseModel):
     answer: OptionId
     needs_help: bool
     message: str
-
-
-class AutonomousDecision(PetDecision):
-    order: list[OptionId]
