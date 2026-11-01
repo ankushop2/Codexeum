@@ -287,6 +287,20 @@ export default function GameRoom({
 
   const mine = game?.players[game.you];
   const rival = game?.players[game.you === 0 ? 1 : 0];
+  const lastRound = game?.history.at(-1);
+  const myHit = lastRound?.answers[game?.you ?? 0] === true;
+  const rivalHit = lastRound?.answers[game?.you === 0 ? 1 : 0] === true;
+  const myPetName = mine?.pet?.name || pet.name;
+  const rivalPetName = rival?.pet?.name || "RIVAL";
+  const roundMessage = lastRound
+    ? myHit && rivalHit
+      ? `${myPetName} and ${rivalPetName} both landed a hit! It's super effective!`
+      : myHit
+        ? `${myPetName} landed a hit! It's super effective!`
+        : rivalHit
+          ? `${rivalPetName} landed a hit! The rival's move was super effective!`
+          : "Neither move landed!"
+    : null;
   return (
     <section className="room-panel">
       {!session ? (
@@ -375,13 +389,14 @@ export default function GameRoom({
                   pet={pet}
                   nickname={nickname}
                   message={
-                    game.phase === "finished"
+                    roundMessage ||
+                    (game.phase === "finished"
                       ? "The battle is over. Check your final score!"
                       : game.answered
                         ? "Move locked in. Waiting for the rival…"
                         : remaining === 0
                           ? "Time’s up! Resolving the round…"
-                          : "Choose an answer to power your next move!"
+                          : "Choose an answer to power your next move!")
                   }
                 />
                 <div className="battle-question-panel">

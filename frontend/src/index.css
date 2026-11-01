@@ -954,17 +954,15 @@ footer {
   right: 10px;
   bottom: 22px;
 }
-.power-line {
+.points-bar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 7px;
   font-size: 9px;
-}
-.power-track {
-  height: 7px;
-  background: #85ab70;
-  flex: 1;
-  border: 1px solid #43513b;
+  background: #dce6c4;
+  border: 1px solid #87996e;
+  padding: 4px 7px;
 }
 .enemy-position {
   position: absolute;

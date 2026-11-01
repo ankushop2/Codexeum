@@ -64,10 +64,9 @@ export default function BattleArena({
           <span>
             {rival?.nickname || "RIVAL"} · {rival?.category}
           </span>
-          <div className="power-line">
-            <span>PTS</span>
+          <div className="points-bar">
+            <span>POINTS</span>
             <strong>{rival?.score ?? 0}</strong>
-            <span className="power-track" />
           </div>
         </div>
         <div className="arena-platform enemy-platform" />
@@ -86,10 +85,9 @@ export default function BattleArena({
           <span>
             {mine?.nickname || nickname} · {mine?.category}
           </span>
-          <div className="power-line">
-            <span>PTS</span>
+          <div className="points-bar">
+            <span>POINTS</span>
             <strong>{mine?.score ?? 0}</strong>
-            <span className="power-track" />
           </div>
         </div>
       </div>
