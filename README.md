@@ -1,6 +1,32 @@
 # Codex Arena
 
-React + TypeScript + Vite frontend and a uv-managed Flask API for a five-round Codex pet battle.
+Your pet. Your skills. Your move.
+
+Codex Arena is a two-player, turn-based pet battle concept where knowledge powers attacks. Each player brings a pet, picks a skill category, and faces five questions. Codex answers for your pet, and you can step in when it needs help. The battle shows the answers and results so you can follow how each move plays out.
+
+The intended experience takes inspiration from retro creature battles: two pets facing off, health bars, skill choices, and a dialogue box narrating the action.
+
+## How a match will work
+
+1. Enter a nickname, choose or import a pet avatar, and create or join a room.
+2. Choose a specialty from seven categories: Debugging, Python, JavaScript, Logic, Web, Data, or Security. Both players also receive a shared random category.
+3. Play five question rounds. Each pet attempts an answer using Codex.
+4. Help your pet when it cannot answer. Human intervention is part of the battle; its limits and scoring are still being designed.
+5. Reveal the answers and resolve the attacks. See the match result and compete on a nickname-based leaderboard.
+
+Room events and round updates are intended to reach both players in real time over sockets. Pet imports refer to avatar artwork, not access to a player's Codex account or conversation history.
+
+## Current status
+
+This repository currently provides a working frontend/API foundation. You can open the arena preview, see two animated placeholder pets and health bars, select one of seven categories loaded from Flask, and preview your selection.
+
+The full match flow is planned. Pet importing, rooms, socket communication, question rounds, Codex answers, human assists, scoring, and the leaderboard are not implemented yet.
+
+## Stack
+
+- **Frontend:** React, TypeScript, Vite, CSS, and Motion for animation.
+- **Backend:** Flask, with Python dependencies managed by uv.
+- **Deployment:** One Docker image serving the built React app and Flask API through Gunicorn on the same origin.
 
 ## Local development
 
@@ -22,8 +48,6 @@ Open http://localhost:5173. Vite forwards `/api` to Flask on port 5001. No crede
 - SkillCard with keyboard focus and selected state.
 - Seven categories fetched from `/api/skills`, plus `/api/health`.
 - Responsive arena preview with explicit loading/error states.
-
-This is a foundation, not a connected multiplayer game. Matchmaking, Codex answers, questions, human assists, persistence, and leaderboard are the next integrations.
 
 ## Basic checks
 
