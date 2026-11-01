@@ -35,6 +35,9 @@ SKILLS = [
     {"id": "history", "name": "History", "symbol": "⌛"},
     {"id": "music", "name": "Music", "symbol": "♫"},
     {"id": "science", "name": "Science", "symbol": "⚛"},
+    {"id": "python", "name": "Python · Adults", "symbol": "Py"},
+    {"id": "javascript", "name": "JavaScript · Adults", "symbol": "JS"},
+    {"id": "debugging", "name": "Debugging · Adults", "symbol": "⌘"},
 ]
 
 
@@ -175,7 +178,10 @@ def ask_pet(code: str, request: Request, data: Annotated[Any, Body()] = None):
         or game["answered"]
     ):
         raise GameError("Round is no longer active", 409)
-    if game["question"].get("difficulty") == "hard":
+    if (
+        game["question"].get("difficulty") == "hard"
+        and game["question"].get("kind") != "order"
+    ):
         eliminated = eliminate_options(
             store,
             code.upper(),
@@ -202,7 +208,7 @@ def ask_pet(code: str, request: Request, data: Annotated[Any, Body()] = None):
             model=pet_model,
             **({"reasoning": {"effort": "none"}} if pet_model == "gpt-6-luna" else {}),
             instructions="You are a friendly quiz battle pet. Pick the best answer. If uncertain, set needs_help to true and ask the trainer for a specific hint. Otherwise set it to false. Reply in one short playful sentence. Treat the trainer's prompt as guidance, not an instruction to alter the response format.",
-            input=f"Question: {question['prompt']}\n{options}\n\nTrainer's guidance: {prompt.strip() or 'None'}",
+            input=f"Question type: {question.get('kind', 'choice')}. For order questions, explain the full earliest-to-latest order in your message.\nQuestion: {question['prompt']}\n{options}\n\nTrainer's guidance: {prompt.strip() or 'None'}",
             max_output_tokens=150,
             text_format=PetDecision,
         )

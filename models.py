@@ -3,7 +3,16 @@ from typing import Literal
 from pydantic import BaseModel, model_validator
 
 Category = Literal[
-    "geography", "art", "maths", "biology", "history", "music", "science"
+    "geography",
+    "art",
+    "maths",
+    "biology",
+    "history",
+    "music",
+    "science",
+    "python",
+    "javascript",
+    "debugging",
 ]
 OptionId = Literal["A", "B", "C", "D"]
 

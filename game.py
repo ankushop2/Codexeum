@@ -12,6 +12,18 @@ from urllib.request import Request, urlopen
 from question_generator import GenerationError, generate_questions
 
 CATEGORIES = ("geography", "art", "maths", "biology", "history", "music", "science")
+ADULT_CATEGORIES = ("python", "javascript", "debugging")
+CATEGORIES = CATEGORIES + ADULT_CATEGORIES
+
+
+def category_pool(category):
+    return (
+        ADULT_CATEGORIES
+        if category in ADULT_CATEGORIES
+        else tuple(c for c in CATEGORIES if c not in ADULT_CATEGORIES)
+    )
+
+
 BOT_DIFFICULTIES = {"easy": 2, "med": 3, "hard": 4}
 ROUND_SECONDS = 30
 TTL = 3600
@@ -268,7 +280,7 @@ def create_game(store, category, profile=None, mode="player", difficulty="med"):
         }
         if mode == "bot":
             opponent = player(
-                secrets.choice([c for c in CATEGORIES if c != category]),
+                secrets.choice([c for c in category_pool(category) if c != category]),
                 {"nickname": "BOT", "pet": {"name": "GLITCH", "color": "#9bc6a1"}},
             )
             opponent.update(bot=True, ready=True)
@@ -289,13 +301,16 @@ def validate_category(category):
 
 
 def advance(game, now):
+    question = game["questions"][game["round"]]
     game["history"].append(
         {
             "round": game["round"] + 1,
             "category": game["questions"][game["round"]]["category"],
-            "correct_answer": game["questions"][game["round"]]["options"][
-                game["questions"][game["round"]]["answer"]
-            ],
+            "correct_answer": " → ".join(
+                question["options"][i] for i in question["order_answer"]
+            )
+            if question.get("kind") == "order"
+            else question["options"][question["answer"]],
             "question": game["questions"][game["round"]]["prompt"],
             "answers": [
                 game["answers"].get(str(i), {}).get("correct") for i in range(2)
@@ -339,6 +354,8 @@ def join_game(store, code, category, profile=None):
             raise GameError("Game is full", 409)
         if game["players"][0]["category"] == category:
             raise GameError("Choose a different category", 400)
+        if category not in category_pool(game["players"][0]["category"]):
+            raise GameError("Choose the same learning mode as your opponent", 400)
         second = player(category, profile)
         game["players"].append(second)
         return lambda game, now: {"code": code, "token": second["token"]}
@@ -370,7 +387,9 @@ def ready_game(store, code, token):
         return view(snapshot, time.time(), index)
     try:
         first, second = [p["category"] for p in snapshot["players"]]
-        other = secrets.choice([c for c in CATEGORIES if c not in (first, second)])
+        other = secrets.choice(
+            [c for c in category_pool(first) if c not in (first, second)]
+        )
         questions = generate_questions(first, second, other)
         secrets.SystemRandom().shuffle(questions)
     except (GenerationError, StoreUnavailable):
@@ -504,7 +523,11 @@ def view(game, now, index):
                 "round": game["round"] + 1,
                 "deadline": game["deadline"],
                 "question": {
-                    **{k: question[k] for k in ("category", "prompt", "options")},
+                    **{
+                        k: question[k]
+                        for k in ("category", "prompt", "options", "kind")
+                        if k in question
+                    },
                     "difficulty": question.get("difficulty", "standard"),
                 },
                 "eliminated": game.get("hints", {}).get(str(index), []),
@@ -527,6 +550,7 @@ def get_game(store, code, token):
 
 def answer_game(store, code, token, round_number, answer, source="trainer"):
     def action(game, now):
+        chosen = answer
         index = identify(game, token)
         if (
             game["phase"] != "playing"
@@ -537,14 +561,23 @@ def answer_game(store, code, token, round_number, answer, source="trainer"):
         if str(index) in game["answers"]:
             raise GameError("Already answered this round", 409)
         question = game["questions"][game["round"]]
-        if type(answer) is not int or not 0 <= answer < len(question["options"]):
+        if question.get("kind") == "order":
+            if (
+                not isinstance(answer, list)
+                or len(answer) != len(question["options"])
+                or any(type(i) is not int for i in answer)
+                or sorted(answer) != list(range(len(question["options"])))
+            ):
+                raise GameError("Arrange every card once", 400)
+            chosen = 0 if answer == question["order_answer"] else 1
+        if type(chosen) is not int or not 0 <= chosen < len(question["options"]):
             raise GameError("Invalid answer", 400)
         if source not in ("trainer", "pet", "team"):
             raise GameError("Invalid answer source", 400)
         if answer in game.get("hints", {}).get(str(index), []):
             raise GameError("That option was eliminated", 400)
         effective_source = "team" if game.get("hints", {}).get(str(index)) else source
-        record_answer(game, index, answer, effective_source)
+        record_answer(game, index, chosen, effective_source)
         if len(game["answers"]) == 2:
             advance(game, now)
         return lambda game, now: view(game, now, index)

@@ -6,6 +6,7 @@ from openai import APIError, OpenAI
 from pydantic import ValidationError
 
 from models import QuestionSet
+from interactive_questions import interactive_questions
 
 
 class GenerationError(Exception):
@@ -85,7 +86,7 @@ def generate_questions(first_category, second_category, random_category):
                     "answer": ord(question.correct_answer) - ord("A"),
                 }
             )
-        return questions
+        return interactive_questions(questions)
     except (APIError, ValidationError) as exc:
         raise GenerationError("Question generation failed. Please try again.") from exc
 

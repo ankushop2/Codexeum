@@ -18,7 +18,7 @@ Pet help is available outside its chosen subject. The learning dashboard shows y
 
 To import a pet, choose its folder containing `spritesheet.png` (or `.webp`) and `pet-record.json`.
 
-**Coming next:** coding challenges for adult learners and developers.
+**New ways to play:** tap a continent on the geography map and arrange history cards from earliest to latest. These questions use a small curated bank. Choose **Adults · Code** when picking a subject for Python, JavaScript and debugging quizzes with pet assistance. Adult coding rooms stay separate from children's subjects; code snippets are quiz content and are not executed.
 
 ## Run locally
 

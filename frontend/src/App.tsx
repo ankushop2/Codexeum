@@ -71,6 +71,7 @@ export default function App() {
   const [nickname, setNickname] = useState("");
   const [skills, setSkills] = useState<Skill[]>([]);
   const [selected, setSelected] = useState("geography");
+  const [adultMode, setAdultMode] = useState(false);
   const [error, setError] = useState("");
   const [skillError, setSkillError] = useState(false);
   const [columns, setColumns] = useState(1);
@@ -268,12 +269,11 @@ export default function App() {
               </p>
             </article>
             <article>
-              <span>FOR DEVELOPERS · COMING NEXT</span>
+              <span>FOR DEVELOPERS · ADULT MODE</span>
               <h3>Give your coding skills a workout.</h3>
               <p>
-                A coding section for adult learners and developers is planned,
-                with programming challenges and a pet whose specialist skills
-                can help you work through them.
+                Choose adult coding mode for Python, JavaScript and debugging
+                challenges, with your pet ready to help.
               </p>
             </article>
           </div>
@@ -389,6 +389,28 @@ export default function App() {
               <div className="skill-screen">
                 <h2>Pick your power.</h2>
                 <p>Your pet’s specialty for the battle.</p>
+                <div className="step-actions">
+                  <button
+                    className="retro-button secondary"
+                    aria-pressed={!adultMode}
+                    onClick={() => {
+                      setAdultMode(false);
+                      setSelected("geography");
+                    }}
+                  >
+                    KIDS · EXPLORE
+                  </button>
+                  <button
+                    className="retro-button secondary"
+                    aria-pressed={adultMode}
+                    onClick={() => {
+                      setAdultMode(true);
+                      setSelected("python");
+                    }}
+                  >
+                    ADULTS · CODE
+                  </button>
+                </div>
                 {skillError ? (
                   <p role="alert">
                     Waiting for the backend. Retrying automatically… Start both
@@ -398,19 +420,26 @@ export default function App() {
                   <p role="status">Loading skills…</p>
                 ) : (
                   <div className="skill-grid">
-                    {skills.map((skill) => (
-                      <button
-                        key={skill.id}
-                        className={selected === skill.id ? "selected" : ""}
-                        aria-pressed={selected === skill.id}
-                        onClick={() => {
-                          setSelected(skill.id);
-                        }}
-                      >
-                        <span>{skill.symbol}</span>
-                        {skill.name}
-                      </button>
-                    ))}
+                    {skills
+                      .filter(
+                        (skill) =>
+                          ["python", "javascript", "debugging"].includes(
+                            skill.id,
+                          ) === adultMode,
+                      )
+                      .map((skill) => (
+                        <button
+                          key={skill.id}
+                          className={selected === skill.id ? "selected" : ""}
+                          aria-pressed={selected === skill.id}
+                          onClick={() => {
+                            setSelected(skill.id);
+                          }}
+                        >
+                          <span>{skill.symbol}</span>
+                          {skill.name}
+                        </button>
+                      ))}
                   </div>
                 )}
                 <p className="random-skill">

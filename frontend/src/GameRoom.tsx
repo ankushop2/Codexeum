@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import BattleArena from "./BattleArena";
 import Leaderboard from "./Leaderboard";
 import LearningProgress from "./LearningProgress";
+import InteractiveAnswer from "./InteractiveAnswer";
 import ResultsModal from "./ResultsModal";
 import type { BattlePet, Fighter } from "./BattleArena";
 
@@ -22,6 +23,7 @@ type Game = {
     prompt: string;
     options: string[];
     difficulty: "standard" | "hard";
+    kind?: "map" | "order";
   };
   answered?: boolean;
   history: {
@@ -327,7 +329,7 @@ export default function GameRoom({
   }
 
   async function answer(
-    index: number,
+    index: number | number[],
     source: "trainer" | "pet" | "team" = "trainer",
   ) {
     if (!session || !game?.round || submitting.current) return;
@@ -864,42 +866,65 @@ export default function GameRoom({
                               </p>
                             </aside>
                           )}
-                        <div className="answer-options">
-                          {game.question.options.map((option, index) => (
-                            <button
-                              key={`${game.round}-${index}`}
-                              className={`retro-button secondary ${(game.eliminated || []).includes(index) ? "eliminated-option" : ""} ${petReply?.round === game.round && petReply?.answer === index ? "pet-suggestion" : ""}`}
-                              disabled={
-                                busy ||
-                                game.answered ||
-                                remaining === 0 ||
-                                fatal ||
-                                (game.eliminated || []).includes(index)
-                              }
-                              onClick={() =>
-                                void answer(
-                                  index,
-                                  petReply &&
-                                    petReply.round === game.round &&
-                                    (petReply.answer !== null ||
-                                      (game.eliminated || []).length > 0)
-                                    ? "team"
-                                    : "trainer",
-                                )
-                              }
-                            >
-                              <span>{String.fromCharCode(65 + index)}.</span>{" "}
-                              {option}
-                              {(game.eliminated || []).includes(index) && (
-                                <small> · ELIMINATED</small>
-                              )}
-                              {petReply?.round === game.round &&
-                                petReply?.answer === index && (
-                                  <small> ← PET’S PICK</small>
+                        {game.question.kind ? (
+                          <InteractiveAnswer
+                            key={`${session?.code}-${game.round}`}
+                            kind={game.question.kind}
+                            eliminated={game.eliminated}
+                            options={game.question.options}
+                            disabled={
+                              busy ||
+                              !!game.answered ||
+                              remaining === 0 ||
+                              fatal
+                            }
+                            onAnswer={(value) =>
+                              void answer(
+                                value,
+                                petReply && petReply.round === game.round
+                                  ? "team"
+                                  : "trainer",
+                              )
+                            }
+                          />
+                        ) : (
+                          <div className="answer-options">
+                            {game.question.options.map((option, index) => (
+                              <button
+                                key={`${game.round}-${index}`}
+                                className={`retro-button secondary ${(game.eliminated || []).includes(index) ? "eliminated-option" : ""} ${petReply?.round === game.round && petReply?.answer === index ? "pet-suggestion" : ""}`}
+                                disabled={
+                                  busy ||
+                                  game.answered ||
+                                  remaining === 0 ||
+                                  fatal ||
+                                  (game.eliminated || []).includes(index)
+                                }
+                                onClick={() =>
+                                  void answer(
+                                    index,
+                                    petReply &&
+                                      petReply.round === game.round &&
+                                      (petReply.answer !== null ||
+                                        (game.eliminated || []).length > 0)
+                                      ? "team"
+                                      : "trainer",
+                                  )
+                                }
+                              >
+                                <span>{String.fromCharCode(65 + index)}.</span>{" "}
+                                {option}
+                                {(game.eliminated || []).includes(index) && (
+                                  <small> · ELIMINATED</small>
                                 )}
-                            </button>
-                          ))}
-                        </div>
+                                {petReply?.round === game.round &&
+                                  petReply?.answer === index && (
+                                    <small> ← PET’S PICK</small>
+                                  )}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                         <p role="status">
                           {game.answered
                             ? "Answer locked. Waiting for your rival or the timer…"

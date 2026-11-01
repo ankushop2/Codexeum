@@ -8,6 +8,9 @@ const subjects = [
   "history",
   "music",
   "science",
+  "python",
+  "javascript",
+  "debugging",
 ];
 type Counts = { attempts: number; correct: number };
 
