@@ -18,8 +18,8 @@ from game import (
     ready_game,
     start_game,
 )
-from question_generator import ConfigurationError, GenerationError
 from models import PetDecision
+from question_generator import ConfigurationError, GenerationError
 
 load_dotenv()
 PUBLIC = Path(__file__).parent / "public"
@@ -90,7 +90,11 @@ def token(request: Request):
 def create(data: Annotated[Any, Body()] = None):
     data = body(data)
     return create_game(
-        store, data.get("category"), data.get("profile"), data.get("mode", "player")
+        store,
+        data.get("category"),
+        data.get("profile"),
+        data.get("mode", "player"),
+        data.get("difficulty", "med"),
     )
 
 

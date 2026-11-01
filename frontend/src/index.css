@@ -1192,3 +1192,15 @@ footer {
     top: 12px;
   }
 }
+.bot-difficulty {
+  margin: 16px 0;
+  border: 2px solid #293b30;
+  padding: 10px;
+}
+.bot-difficulty .retro-button {
+  margin-inline: 4px;
+}
+.bot-difficulty .retro-button[aria-pressed="true"] {
+  background: #304e39;
+  color: #f0f1ce;
+}

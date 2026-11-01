@@ -133,8 +133,10 @@ Created at the DevDay Community Hackathon in London on 1 November 2026. The Reac
 
 ## Bot games and match preparation
 
-Choose Play Against Bot to create a game with an automatically ready bot. The bot picks a random answer after two seconds, without extra AI calls. Human games require both players to press Ready Up. Once generation completes, Start Game becomes available to either player. Every question lasts 30 seconds, advancing early when both answers arrive.
+Choose Play Against Bot to create a game with an automatically ready bot. The bot answers after two seconds, without extra AI calls. Choose Easy (base 2 correct), Medium (base 3), or Hard (base 4). Each game randomly adds -1, 0 or +1 to that count, producing 1–3, 2–4 or 3–5 correct answers out of five. Correct rounds are chosen once and kept private on the server. Human games require both players to press Ready Up. Once generation completes, Start Game becomes available to either player. Every question lasts 30 seconds, advancing early when both answers arrive.
 
 - `POST /api/games` accepts `"mode":"bot"` (default: `"player"`).
 - `POST /api/games/{code}/ready` uses the player bearer token. The second ready player triggers question generation. Failed generation leaves the room waiting; press ready again to retry. Interrupted generation can be retried after 90 seconds.
 - `POST /api/games/{code}/start` uses the player bearer token and starts the first round only when questions are ready. Repeated calls during play do not reset the timer.
+
+For bot games, `POST /api/games` accepts `"difficulty":"easy"`, `"med"` or `"hard"` alongside `"mode":"bot"`. The default is `"med"`.

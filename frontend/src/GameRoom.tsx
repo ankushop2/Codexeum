@@ -6,6 +6,7 @@ import type { BattlePet, Fighter } from "./BattleArena";
 type Session = { code: string; token: string };
 type Game = {
   code: string;
+  bot_difficulty?: "easy" | "med" | "hard";
   phase: "waiting" | "generating" | "ready" | "playing" | "finished";
   players: (Fighter & { ready: boolean; bot: boolean })[];
   you: number;
@@ -90,6 +91,7 @@ export default function GameRoom({
   const [session, setSession] = useState<Session | null>(restoreSession);
   const [game, setGame] = useState<Game | null>(null);
   const [code, setCode] = useState("");
+  const [difficulty, setDifficulty] = useState<"easy" | "med" | "hard">("med");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -238,6 +240,7 @@ export default function GameRoom({
           body: JSON.stringify({
             category,
             mode,
+            ...(mode === "bot" ? { difficulty } : {}),
             profile: { nickname, pet: await portrait() },
           }),
         },
@@ -451,6 +454,28 @@ export default function GameRoom({
           >
             {busy ? "CONNECTING…" : "CREATE ROOM →"}
           </button>
+          <fieldset className="bot-difficulty" disabled={busy}>
+            <legend>BOT DIFFICULTY</legend>
+            {(["easy", "med", "hard"] as const).map((level) => (
+              <button
+                key={level}
+                type="button"
+                className="retro-button secondary"
+                aria-pressed={difficulty === level}
+                onClick={() => setDifficulty(level)}
+              >
+                {level === "med" ? "MEDIUM" : level.toUpperCase()}
+              </button>
+            ))}
+            <p>
+              {difficulty === "easy"
+                ? "1–3"
+                : difficulty === "med"
+                  ? "2–4"
+                  : "3–5"}{" "}
+              correct answers out of five.
+            </p>
+          </fieldset>
           <button
             className="retro-button secondary"
             disabled={busy}
@@ -548,6 +573,14 @@ export default function GameRoom({
               >
                 START GAME →
               </button>
+              {game.bot_difficulty && (
+                <p>
+                  Bot difficulty:{" "}
+                  {game.bot_difficulty === "med"
+                    ? "Medium"
+                    : game.bot_difficulty}
+                </p>
+              )}
               <p>Five rounds · 30 seconds per question.</p>
             </div>
           )}

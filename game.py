@@ -12,6 +12,7 @@ from urllib.request import Request, urlopen
 from question_generator import GenerationError, generate_questions
 
 CATEGORIES = ("geography", "art", "maths", "biology", "history", "music", "science")
+BOT_DIFFICULTIES = {"easy": 2, "med": 3, "hard": 4}
 ROUND_SECONDS = 30
 TTL = 3600
 CAS = "if redis.call('GET', KEYS[1]) == ARGV[1] then redis.call('SET', KEYS[1], ARGV[2], 'EX', ARGV[3]); return 1 else return 0 end"
@@ -178,9 +179,13 @@ def player(category, profile=None):
     }
 
 
-def create_game(store, category, profile=None, mode="player"):
+def create_game(store, category, profile=None, mode="player", difficulty="med"):
     if mode not in ("player", "bot"):
         raise GameError("Invalid game mode", 400)
+    if mode == "bot" and (
+        not isinstance(difficulty, str) or difficulty not in BOT_DIFFICULTIES
+    ):
+        raise GameError("Invalid bot difficulty; choose easy, med or hard", 400)
     validate_category(category)
     profile = appearance(profile)
     for _ in range(10):
@@ -203,6 +208,11 @@ def create_game(store, category, profile=None, mode="player"):
             )
             opponent.update(bot=True, ready=True)
             game["players"].append(opponent)
+            correct_count = BOT_DIFFICULTIES[difficulty] + secrets.choice((-1, 0, 1))
+            game["bot_difficulty"] = difficulty
+            game["bot_correct_rounds"] = secrets.SystemRandom().sample(
+                range(5), correct_count
+            )
         if store.create(code, game):
             return {"code": code, "token": first["token"]}
     raise GameError("Could not create a game; try again", 503)
@@ -329,9 +339,19 @@ def begin_round(game, now):
     game["deadline"] = now + ROUND_SECONDS
     if any(p.get("bot") for p in game["players"]):
         game["bot_due"] = now + 2
-        game["bot_answer"] = secrets.randbelow(
-            len(game["questions"][game["round"]]["options"])
-        )
+        question = game["questions"][game["round"]]
+        if "bot_correct_rounds" not in game:
+            game["bot_answer"] = secrets.randbelow(len(question["options"]))
+        elif game["round"] in game["bot_correct_rounds"]:
+            game["bot_answer"] = question["answer"]
+        else:
+            game["bot_answer"] = secrets.choice(
+                [
+                    index
+                    for index in range(len(question["options"]))
+                    if index != question["answer"]
+                ]
+            )
 
 
 def record_answer(game, index, answer, source="trainer"):
@@ -399,6 +419,8 @@ def view(game, now, index):
         "server_time": now,
         "history": game["history"],
     }
+    if "bot_difficulty" in game:
+        result["bot_difficulty"] = game["bot_difficulty"]
     if game["phase"] == "playing":
         question = game["questions"][game["round"]]
         result.update(
