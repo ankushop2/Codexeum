@@ -2191,3 +2191,126 @@ footer {
     animation: none;
   }
 }
+
+.autopilot-panel {
+  margin-bottom: 1.5rem;
+  padding: clamp(1rem, 3vw, 1.75rem);
+  border: 4px solid #45533a;
+  background: #f4f3df;
+  box-shadow: 6px 6px 0 #8e9c75;
+}
+.autopilot-panel.is-active {
+  border-color: #2f6046;
+}
+.autopilot-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.autopilot-heading h2 {
+  margin: 0.6rem 0;
+  font-size: clamp(1.1rem, 3vw, 1.5rem);
+}
+.autopilot-heading p {
+  margin: 0.5rem 0 1rem;
+}
+.autopilot-eyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+}
+.autopilot-badge {
+  padding: 0.65rem;
+  border: 2px solid #788968;
+  font-size: 0.75rem;
+  background: #e0e6ca;
+}
+.is-active .autopilot-badge {
+  background: #2f6046;
+  color: #f4f3df;
+}
+.autopilot-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 1.5rem;
+}
+.autopilot-brief label {
+  display: block;
+  margin: 0.5rem 0;
+  font-weight: bold;
+  font-size: 0.85rem;
+}
+.autopilot-brief textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 7rem;
+  resize: vertical;
+  padding: 0.8rem;
+  border: 3px solid #788968;
+  background: #fffef1;
+  color: #283b2c;
+  font: inherit;
+  line-height: 1.5;
+}
+.autopilot-brief textarea:focus {
+  outline: 3px solid #2f6046;
+  outline-offset: 3px;
+}
+.autopilot-brief p {
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+.autopilot-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.autopilot-chip {
+  padding: 0.65rem 0.75rem;
+  min-height: 44px;
+  border: 2px solid #788968;
+  background: #e7ebd4;
+  color: #283b2c;
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  text-align: left;
+}
+.autopilot-chip:hover,
+.autopilot-chip[aria-pressed="true"] {
+  background: #cbd8ac;
+  border-color: #2f6046;
+}
+.autopilot-controls {
+  min-width: 0;
+  border-left: 2px solid #bac4a3;
+  padding-left: 1.5rem;
+}
+.autopilot-controls ol {
+  padding-left: 1.4rem;
+  line-height: 1.7;
+  margin-top: 0.5rem;
+}
+.autopilot-controls .retro-button {
+  width: 100%;
+}
+.autopilot-status {
+  min-height: 3em;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+@media (max-width: 700px) {
+  .autopilot-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+  }
+  .autopilot-controls {
+    border-left: 0;
+    border-top: 2px solid #bac4a3;
+    padding: 1rem 0 0;
+  }
+  .autopilot-controls ol {
+    margin-top: 0;
+  }
+}

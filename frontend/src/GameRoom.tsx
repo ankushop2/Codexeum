@@ -115,6 +115,10 @@ export default function GameRoom({
   const [remaining, setRemaining] = useState(0);
   const [fatal, setFatal] = useState(false);
   const [autonomous, setAutonomous] = useState(false);
+  const [starterPrompt, setStarterPrompt] = useState(
+    "Read the question carefully, compare every option, and explain your best pick in one short sentence. Ask me for help if you are unsure.",
+  );
+  const [activePrompt, setActivePrompt] = useState("");
   const [autoCountdown, setAutoCountdown] = useState<number | null>(null);
   const [petPrompt, setPetPrompt] = useState("");
   const [petBusy, setPetBusy] = useState(false);
@@ -390,7 +394,13 @@ export default function GameRoom({
         `/${session.code}/pet`,
         {
           method: "POST",
-          body: JSON.stringify({ round, prompt: prompt.trim(), autonomous }),
+          body: JSON.stringify({
+            round,
+            prompt: autonomous
+              ? `Starting instructions: ${activePrompt.slice(0, 200)}\nThis round: ${prompt.trim().slice(0, 250)}`
+              : prompt.trim(),
+            autonomous,
+          }),
         },
         session.token,
       );
@@ -573,29 +583,123 @@ export default function GameRoom({
   return (
     <section className="room-panel">
       {mine?.controller !== "codex" && (
-        <div className="pet-advice">
-          <label>
-            <input
-              type="checkbox"
-              checked={autonomous}
-              onChange={(event) => setAutonomous(event.target.checked)}
-            />{" "}
-            PET PLAYS · GPT autopilot
-          </label>
-          <p>
-            Your pet picks and submits each answer for 2 points. You can pause,
-            steer it, or pick an answer yourself. Keep this tab open.
-          </p>
-          {autonomous && (
-            <strong role="status">
-              {petPrompt.trim()
-                ? "Paused while you write guidance. Send it to resume."
-                : autoCountdown !== null
-                  ? `Submitting in ${autoCountdown}s — type guidance or switch off to pause!`
-                  : "Pet plays is on. Uncertain pets wait for your help."}
-            </strong>
-          )}
-        </div>
+        <section
+          className={`autopilot-panel ${autonomous ? "is-active" : ""}`}
+          aria-labelledby="autopilot-title"
+        >
+          <div className="autopilot-heading">
+            <div>
+              <span className="autopilot-eyebrow">TRAINER CONTROL ROOM</span>
+              <h2 id="autopilot-title">Let {myPetName} take the lead</h2>
+              <p>
+                Give your pet a game plan. Watch it think, then steer its next
+                move.
+              </p>
+            </div>
+            <span className="autopilot-badge" role="status">
+              {autonomous ? "● AUTOPILOT ON" : "○ YOU’RE IN CONTROL"}
+            </span>
+          </div>
+          <div className="autopilot-layout">
+            <div className="autopilot-brief">
+              <label htmlFor="starter-prompt">
+                YOUR PET’S STARTING INSTRUCTIONS
+              </label>
+              <textarea
+                id="starter-prompt"
+                value={starterPrompt}
+                maxLength={200}
+                rows={3}
+                onChange={(event) => {
+                  setStarterPrompt(event.target.value);
+                  setAutonomous(false);
+                }}
+                placeholder="How should your pet approach each question?"
+                aria-describedby="starter-prompt-help"
+              />
+              <p id="starter-prompt-help">
+                Used every round. Editing pauses autopilot; start again to apply
+                your new plan.
+              </p>
+              <div
+                className="autopilot-suggestions"
+                aria-label="Suggested multiple-choice techniques"
+              >
+                {[
+                  [
+                    "Rule out wrong answers",
+                    "Compare all options. Rule out choices that contradict the question, then explain the best remaining answer briefly.",
+                  ],
+                  [
+                    "Find the key clue",
+                    "Look for the key clue in the question. Watch for words like NOT, EXCEPT, always and never. Use the clue to compare every option.",
+                  ],
+                  [
+                    "Work it out first",
+                    "Work out the answer before looking at the options. Then match your result to the closest correct choice. Check units and calculations.",
+                  ],
+                  [
+                    "Ask when unsure",
+                    "Compare every option carefully. If two choices still seem plausible, ask me for a useful clue instead of guessing.",
+                  ],
+                ].map(([label, prompt]) => (
+                  <button
+                    key={label}
+                    type="button"
+                    className="autopilot-chip"
+                    aria-pressed={starterPrompt === prompt}
+                    onClick={() => {
+                      setStarterPrompt(prompt);
+                      setAutonomous(false);
+                    }}
+                  >
+                    {label} ↗
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="autopilot-controls">
+              <ol>
+                <li>Pet proposes a pick.</li>
+                <li>You get 5 seconds to steer.</li>
+                <li>Pet submits · 2 points if correct.</li>
+              </ol>
+              <button
+                type="button"
+                className={`retro-button ${autonomous ? "secondary" : "primary"}`}
+                aria-pressed={autonomous}
+                disabled={game?.phase === "finished" || fatal}
+                onClick={() => {
+                  if (autonomous) {
+                    setAutonomous(false);
+                    return;
+                  }
+                  petRequest.current += 1;
+                  petAttempt.current = "";
+                  setPetBusy(false);
+                  setPetReply(null);
+                  setActivePrompt(starterPrompt.trim());
+                  setAutonomous(true);
+                }}
+              >
+                {autonomous ? "Ⅱ PAUSE AUTOPILOT" : "▶ START PET AUTOPILOT"}
+              </button>
+              <p className="autopilot-status" role="status" aria-live="polite">
+                {!autonomous
+                  ? "Answer yourself for 5 points, or let your pet play."
+                  : petPrompt.trim()
+                    ? "Paused while you write. Send your guidance to continue."
+                    : autoCountdown !== null
+                      ? `Pet’s pick locks in ${autoCountdown}s. Type below to steer!`
+                      : petBusy
+                        ? `${myPetName} is considering the options…`
+                        : petReply?.round === game?.round && petReply?.needsHelp
+                          ? "Your pet needs a clue. Guide it below or pick an answer."
+                          : "Ready for the next question. Keep this tab open."}
+              </p>
+            </div>
+          </div>
+        </section>
       )}
       {!session ? (
         <>
