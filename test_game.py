@@ -55,6 +55,9 @@ class GameTests(unittest.TestCase):
         self.code = self.first["code"]
         self.second = game.join_game(self.store, self.code, "geography")
         self.tokens = [self.first["token"], self.second["token"]]
+        for token in self.tokens:
+            game.ready_game(self.store, self.code, token)
+        game.start_game(self.store, self.code, self.tokens[0])
 
     def test_concurrent_answers_score_and_advance_once(self):
         current = json.loads(self.store.get(self.code))
@@ -166,6 +169,17 @@ class ApiTests(unittest.TestCase):
         )
         self.assertEqual(second.status_code, 200)
         headers = {"Authorization": "Bearer " + first.json()["token"]}
+        self.assertEqual(
+            self.client.get(f"/api/games/{code}", headers=headers).json()["phase"],
+            "waiting",
+        )
+        self.client.post(f"/api/games/{code}/ready", headers=headers)
+        second_headers = {"Authorization": "Bearer " + second.json()["token"]}
+        prepared = self.client.post(f"/api/games/{code}/ready", headers=second_headers)
+        self.assertEqual(prepared.json()["phase"], "ready")
+        self.assertNotIn("question", prepared.json())
+        started = self.client.post(f"/api/games/{code}/start", headers=headers)
+        self.assertEqual(started.json()["deadline"] - started.json()["server_time"], 30)
         state = self.client.get(f"/api/games/{code}", headers=headers)
         self.assertEqual(state.json()["phase"], "playing")
         self.assertEqual(state.headers["Cache-Control"], "no-store")

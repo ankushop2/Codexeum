@@ -1,15 +1,15 @@
 import base64
 import binascii
-import re
-import struct
 import json
 import os
+import re
 import secrets
+import struct
 import time
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 
-from question_generator import generate_questions
+from question_generator import GenerationError, generate_questions
 
 CATEGORIES = ("geography", "art", "maths", "biology", "history", "music", "science")
 ROUND_SECONDS = 30
@@ -118,11 +118,15 @@ def player(category, profile=None):
         "token": secrets.token_urlsafe(32),
         "category": category,
         "score": 0,
+        "ready": False,
+        "bot": False,
         **appearance(profile),
     }
 
 
-def create_game(store, category, profile=None):
+def create_game(store, category, profile=None, mode="player"):
+    if mode not in ("player", "bot"):
+        raise GameError("Invalid game mode", 400)
     validate_category(category)
     profile = appearance(profile)
     for _ in range(10):
@@ -138,6 +142,13 @@ def create_game(store, category, profile=None):
             "answers": {},
             "history": [],
         }
+        if mode == "bot":
+            opponent = player(
+                secrets.choice([c for c in CATEGORIES if c != category]),
+                {"nickname": "BOT", "pet": {"name": "GLITCH", "color": "#9bc6a1"}},
+            )
+            opponent.update(bot=True, ready=True)
+            game["players"].append(opponent)
         if store.create(code, game):
             return {"code": code, "token": first["token"]}
     raise GameError("Could not create a game; try again", 503)
@@ -164,7 +175,7 @@ def advance(game, now):
         game["phase"] = "finished"
         game["deadline"] = None
     else:
-        game["deadline"] = now + ROUND_SECONDS
+        begin_round(game, now)
 
 
 def update(store, code, action):
@@ -174,8 +185,7 @@ def update(store, code, action):
             raise GameError("Game not found or expired", 404)
         game = json.loads(raw)
         now = time.time()
-        if game["phase"] == "playing" and now >= game["deadline"]:
-            advance(game, now)
+        tick(game, now)
         result = action(game, now)
         if store.replace(code, raw, game):
             return result(game, now)
@@ -186,32 +196,107 @@ def join_game(store, code, category, profile=None):
     validate_category(category)
     profile = appearance(profile)
 
-    raw = store.get(code)
-    if raw is None:
-        raise GameError("Game not found or expired", 404)
-    existing = json.loads(raw)
-    if existing["phase"] != "waiting":
-        raise GameError("Game is full", 409)
-    first_category = existing["players"][0]["category"]
-    if first_category == category:
-        raise GameError("Choose a different category", 400)
-    other = secrets.choice(
-        [c for c in CATEGORIES if c not in (category, first_category)]
-    )
-    questions = generate_questions(first_category, category, other)
-    secrets.SystemRandom().shuffle(questions)
-
     def action(game, now):
-        if game["phase"] != "waiting":
+        if game["phase"] != "waiting" or len(game["players"]) != 1:
             raise GameError("Game is full", 409)
+        if game["players"][0]["category"] == category:
+            raise GameError("Choose a different category", 400)
         second = player(category, profile)
         game["players"].append(second)
-        game["questions"] = questions
-        game["phase"] = "playing"
-        game["deadline"] = now + ROUND_SECONDS
         return lambda game, now: {"code": code, "token": second["token"]}
 
     return update(store, code, action)
+
+
+def ready_game(store, code, token):
+    generation = secrets.token_urlsafe(16)
+
+    def claim(game, now):
+        index = identify(game, token)
+        if game["phase"] == "generating" and now >= game["generation_deadline"]:
+            game["phase"] = "waiting"
+        if game["phase"] != "waiting":
+            return lambda game, now: (False, index, game)
+        game["players"][index]["ready"] = True
+        generate = len(game["players"]) == 2 and all(
+            p.get("ready", False) for p in game["players"]
+        )
+        if generate:
+            game.update(
+                phase="generating", generation=generation, generation_deadline=now + 90
+            )
+        return lambda game, now: (generate, index, game)
+
+    generate, index, snapshot = update(store, code, claim)
+    if not generate:
+        return view(snapshot, time.time(), index)
+    try:
+        first, second = [p["category"] for p in snapshot["players"]]
+        other = secrets.choice([c for c in CATEGORIES if c not in (first, second)])
+        questions = generate_questions(first, second, other)
+        secrets.SystemRandom().shuffle(questions)
+    except (GenerationError, StoreUnavailable):
+
+        def reset(game, now):
+            if game.get("generation") == generation and game["phase"] == "generating":
+                game["phase"] = "waiting"
+            return lambda game, now: None
+
+        update(store, code, reset)
+        raise
+
+    def finish(game, now):
+        if game.get("generation") != generation or game["phase"] != "generating":
+            raise GameError("Question generation was replaced; refresh the room", 409)
+        game.update(questions=questions, phase="ready")
+        return lambda game, now: view(game, now, index)
+
+    return update(store, code, finish)
+
+
+def start_game(store, code, token):
+    def action(game, now):
+        index = identify(game, token)
+        if game["phase"] == "ready":
+            game["phase"] = "playing"
+            begin_round(game, now)
+        elif game["phase"] != "playing":
+            raise GameError("Questions are not ready", 409)
+        return lambda game, now: view(game, now, index)
+
+    return update(store, code, action)
+
+
+def begin_round(game, now):
+    game["deadline"] = now + ROUND_SECONDS
+    if any(p.get("bot") for p in game["players"]):
+        game["bot_due"] = now + 2
+        game["bot_answer"] = secrets.randbelow(
+            len(game["questions"][game["round"]]["options"])
+        )
+
+
+def record_answer(game, index, answer):
+    question = game["questions"][game["round"]]
+    correct = answer == question["answer"]
+    if correct:
+        game["players"][index]["score"] += (
+            2 if game["players"][index]["category"] == question["category"] else 5
+        )
+    game["answers"][str(index)] = {"correct": correct}
+
+
+def tick(game, now):
+    if game["phase"] == "generating" and now >= game["generation_deadline"]:
+        game["phase"] = "waiting"
+    if game["phase"] != "playing":
+        return
+    if game.get("bot_due", float("inf")) <= now:
+        for index, p in enumerate(game["players"]):
+            if p.get("bot") and str(index) not in game["answers"]:
+                record_answer(game, index, game["bot_answer"])
+    if now >= game["deadline"] or len(game["answers"]) == 2:
+        advance(game, now)
 
 
 def identify(game, token):
@@ -228,6 +313,8 @@ def view(game, now, index):
         "players": [
             {
                 "category": p["category"],
+                "ready": p.get("ready", False),
+                "bot": p.get("bot", False),
                 "nickname": p.get("nickname", "TRAINER"),
                 "pet": p.get("pet", {"name": "BYTE", "color": "#aaa0e8"}),
                 "score": p["score"]
@@ -286,12 +373,7 @@ def answer_game(store, code, token, round_number, answer):
         question = game["questions"][game["round"]]
         if type(answer) is not int or not 0 <= answer < len(question["options"]):
             raise GameError("Invalid answer", 400)
-        correct = answer == question["answer"]
-        if correct:
-            game["players"][index]["score"] += (
-                2 if game["players"][index]["category"] == question["category"] else 5
-            )
-        game["answers"][str(index)] = {"correct": correct}
+        record_answer(game, index, answer)
         if len(game["answers"]) == 2:
             advance(game, now)
         return lambda game, now: view(game, now, index)

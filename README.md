@@ -22,7 +22,7 @@ A retro, two-player quiz battle where your pet faces off against a rival in a fi
 
 Codexeum brings the feel of a retro creature battle to a head-to-head quiz. Pick a companion, choose your specialty, and invite a friend into an arena. Your pets face each other while you answer questions, score points, and see who wins.
 
-OpenAI generates the questions when the second player joins. **Today, humans answer the questions.** Codex-powered pet answers, human assists, and a public leaderboard are planned, not yet implemented.
+OpenAI generates the questions after both players ready up. **Today, humans answer the questions.** Codex-powered pet answers, human assists, and a public leaderboard are planned, not yet implemented.
 
 ## How to play
 
@@ -33,15 +33,17 @@ flowchart LR
     C --> D{Battle room}
     D -->|Player 1| E[Create room & share code]
     D -->|Player 2| F[Join with code]
-    E --> G[OpenAI generates 5 questions]
-    F --> G
-    G --> H[Answer each round in 30 seconds]
+    E --> R[Both players ready up]
+    F --> R
+    R --> G[OpenAI generates 5 questions]
+    G --> S[Press Start Game]
+    S --> H[Answer each round in 30 seconds]
     H --> I[See scores, round log & winner]
 ```
 
 1. **Choose a pet.** Pick a starter or import a Codex pet folder containing `spritesheet.png` (or `spritesheet.webp`) and `pet-record.json`. The importer reads the pet's name and recognizes supported sprite-sheet layouts. You can also select an image and metadata files together.
 2. **Pick your specialty.** Choose Geography, Art, Maths, Biology, History, Music, or Science. The two players must choose different specialties.
-3. **Create or join a room.** Player 1 shares a six-character code. The match starts when player 2 joins and questions are ready.
+3. **Create or join a room.** Player 1 shares a six-character code. Both players ready up to generate questions; either player can then press Start Game.
 4. **Battle through five questions.** There are two questions from each player's specialty and one from a shared random category. Each round lasts up to 30 seconds and ends early if both players answer.
 5. **See who won.** A correct answer earns 2 points in your specialty and 5 points in another category. The game shows each resolved round, the final scores, and a winner or draw.
 
@@ -77,7 +79,7 @@ Trainer names and selected pet appearances are shared with the room opponent. Im
 
 ## Run locally
 
-**Prerequisites:** Node.js 24, pnpm 10.23, uv, Python 3.12, an Upstash Redis database, and an OpenAI API key. Pet selection and the health endpoint work without credentials; creating and joining rooms requires Redis, and joining also requires OpenAI.
+**Prerequisites:** Node.js 24, pnpm 10.23, uv, Python 3.12, an Upstash Redis database, and an OpenAI API key. Pet selection and the health endpoint work without credentials; creating and joining rooms requires Redis, and preparing questions requires OpenAI.
 
 ```sh
 pnpm install --frozen-lockfile
@@ -115,7 +117,7 @@ Open [http://localhost:8000](http://localhost:8000). The image builds React and 
 | Endpoint                                | Purpose                                                                            |
 | --------------------------------------- | ---------------------------------------------------------------------------------- |
 | `POST /api/games`                       | Create a room with a specialty and optional trainer/pet profile.                   |
-| `POST /api/games/{code}/join`           | Join with a different specialty; generate questions and begin the match.           |
+| `POST /api/games/{code}/join`           | Join with a different specialty; wait for both players to ready up.                |
 | `GET /api/games/{code}`                 | Get the current state using the player's bearer token.                             |
 | `POST /api/games/{code}/answers`        | Submit a zero-based answer index and round number using the player's bearer token. |
 | `GET /api/health` and `GET /api/skills` | Check API availability and list the seven specialties.                             |
@@ -125,3 +127,11 @@ The frontend polls state approximately once per second. Deadlines and server tim
 ## Credits
 
 Created at the DevDay Community Hackathon in London on 1 November 2026. The React/TypeScript foundation was generated with create-vite; Codex helped build the interface, API integration, and deployment configuration. The starter pets and pixel Colosseum logo are original placeholders. No Pokémon artwork is included. Fonts are served from Google Fonts with system fallbacks; project dependencies retain their respective licenses.
+
+## Bot games and match preparation
+
+Choose Play Against Bot to create a game with an automatically ready bot. The bot picks a random answer after two seconds, without extra AI calls. Human games require both players to press Ready Up. Once generation completes, Start Game becomes available to either player. Every question lasts 30 seconds, advancing early when both answers arrive.
+
+- `POST /api/games` accepts `"mode":"bot"` (default: `"player"`).
+- `POST /api/games/{code}/ready` uses the player bearer token. The second ready player triggers question generation. Failed generation leaves the room waiting; press ready again to retry. Interrupted generation can be retried after 90 seconds.
+- `POST /api/games/{code}/start` uses the player bearer token and starts the first round only when questions are ready. Repeated calls during play do not reset the timer.

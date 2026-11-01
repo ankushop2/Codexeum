@@ -1,6 +1,6 @@
+import os
 from pathlib import Path
 from typing import Annotated, Any
-import os
 
 from dotenv import load_dotenv
 from fastapi import Body, FastAPI, HTTPException, Request
@@ -15,6 +15,8 @@ from game import (
     create_game,
     get_game,
     join_game,
+    ready_game,
+    start_game,
 )
 from question_generator import ConfigurationError, GenerationError
 
@@ -79,13 +81,25 @@ def token(request: Request):
 @app.post("/api/games", status_code=201)
 def create(data: Annotated[Any, Body()] = None):
     data = body(data)
-    return create_game(store, data.get("category"), data.get("profile"))
+    return create_game(
+        store, data.get("category"), data.get("profile"), data.get("mode", "player")
+    )
 
 
 @app.post("/api/games/{code}/join")
 def join(code: str, data: Annotated[Any, Body()] = None):
     data = body(data)
     return join_game(store, code.upper(), data.get("category"), data.get("profile"))
+
+
+@app.post("/api/games/{code}/ready")
+def ready(code: str, request: Request):
+    return ready_game(store, code.upper(), token(request))
+
+
+@app.post("/api/games/{code}/start")
+def start(code: str, request: Request):
+    return start_game(store, code.upper(), token(request))
 
 
 @app.get("/api/games/{code}")

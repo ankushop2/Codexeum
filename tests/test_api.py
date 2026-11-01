@@ -66,8 +66,16 @@ def test_join_generation_failure_leaves_room_waiting(monkeypatch):
     monkeypatch.setattr(game, "generate_questions", fail)
     client = TestClient(api.app)
     first = client.post("/api/games", json={"category": "maths"}).json()
-    result = client.post(
+    second = client.post(
         f"/api/games/{first['code']}/join", json={"category": "geography"}
+    ).json()
+    client.post(
+        f"/api/games/{first['code']}/ready",
+        headers={"Authorization": "Bearer " + first["token"]},
+    )
+    result = client.post(
+        f"/api/games/{first['code']}/ready",
+        headers={"Authorization": "Bearer " + second["token"]},
     )
     assert result.status_code == 502
     state = client.get(
@@ -75,7 +83,7 @@ def test_join_generation_failure_leaves_room_waiting(monkeypatch):
         headers={"Authorization": "Bearer " + first["token"]},
     )
     assert state.json()["phase"] == "waiting"
-    assert len(state.json()["players"]) == 1
+    assert len(state.json()["players"]) == 2
     assert client.post("/api/questions", json={"category": "maths"}).status_code in (
         404,
         405,

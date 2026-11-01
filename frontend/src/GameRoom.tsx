@@ -5,8 +5,8 @@ import type { BattlePet, Fighter } from "./BattleArena";
 type Session = { code: string; token: string };
 type Game = {
   code: string;
-  phase: "waiting" | "playing" | "finished";
-  players: Fighter[];
+  phase: "waiting" | "generating" | "ready" | "playing" | "finished";
+  players: (Fighter & { ready: boolean; bot: boolean })[];
   you: number;
   server_time: number;
   round?: number;
@@ -35,7 +35,7 @@ async function api<T>(
     cache: "no-store",
     signal:
       options.signal ??
-      AbortSignal.timeout(path.endsWith("/join") ? 90000 : 8000),
+      AbortSignal.timeout(path.endsWith("/ready") ? 90000 : 8000),
     headers: {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -213,7 +213,7 @@ export default function GameRoom({
     };
   }
 
-  async function enter(join: boolean) {
+  async function enter(join: boolean, mode = "player") {
     if (submitting.current) return;
     submitting.current = true;
     setBusy(true);
@@ -225,6 +225,7 @@ export default function GameRoom({
           method: "POST",
           body: JSON.stringify({
             category,
+            mode,
             profile: { nickname, pet: await portrait() },
           }),
         },
@@ -235,6 +236,30 @@ export default function GameRoom({
     } catch (error) {
       setError(
         error instanceof Error ? error.message : "Unable to enter room.",
+      );
+    } finally {
+      submitting.current = false;
+      setBusy(false);
+    }
+  }
+
+  async function lobbyAction(action: "ready" | "start") {
+    if (!session || submitting.current) return;
+    submitting.current = true;
+    version.current += 1;
+    setBusy(true);
+    setError("");
+    try {
+      accept(
+        await api<Game>(
+          `/${session.code}/${action}`,
+          { method: "POST" },
+          session.token,
+        ),
+      );
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : "Request failed. Try again.",
       );
     } finally {
       submitting.current = false;
@@ -358,6 +383,13 @@ export default function GameRoom({
           >
             {busy ? "CONNECTING…" : "CREATE ROOM →"}
           </button>
+          <button
+            className="retro-button secondary"
+            disabled={busy}
+            onClick={() => void enter(false, "bot")}
+          >
+            PLAY AGAINST BOT →
+          </button>
           <div className="join-room">
             <label htmlFor="room-code">
               ROOM CODE
@@ -399,20 +431,59 @@ export default function GameRoom({
           </div>
           {notice && <p role="status">{notice}</p>}
           {!game && !fatal && <p role="status">Connecting to your room…</p>}
-          {game?.phase === "waiting" && (
+          {game && ["waiting", "generating", "ready"].includes(game.phase) && (
             <div className="waiting-room">
-              <span className="cursor">✦</span>
-              <h2>Waiting for a rival…</h2>
-              <p>
-                Share the code. The battle starts as soon as player two joins.
-              </p>
-              <p>
-                Your specialty: {mine?.category}. Your rival must pick a
-                different one.
-              </p>
+              <h2>
+                {game.phase === "ready"
+                  ? "Questions ready!"
+                  : game.phase === "generating"
+                    ? "Preparing questions…"
+                    : game.players.length < 2
+                      ? "Waiting for a rival…"
+                      : "Ready your team"}
+              </h2>
+              {game.players.length < 2 && (
+                <p>
+                  Share the room code. Both players must ready up before
+                  questions are generated.
+                </p>
+              )}
+              {game.players.map((player, index) => (
+                <p key={index}>
+                  {player.nickname}
+                  {player.bot ? " (BOT)" : ""}:{" "}
+                  {player.ready ? "READY" : "NOT READY"}
+                </p>
+              ))}
+              {game.phase === "waiting" && (
+                <button
+                  className="retro-button primary"
+                  disabled={busy || fatal}
+                  onClick={() => void lobbyAction("ready")}
+                >
+                  {busy
+                    ? "PREPARING…"
+                    : mine?.ready
+                      ? "READY · RETRY PREPARATION"
+                      : "READY UP →"}
+                </button>
+              )}
+              {game.phase === "generating" && (
+                <p role="status">
+                  Generating five questions. The timer has not started.
+                </p>
+              )}
+              <button
+                className="retro-button primary"
+                disabled={busy || fatal || game.phase !== "ready"}
+                onClick={() => void lobbyAction("start")}
+              >
+                START GAME →
+              </button>
+              <p>Five rounds · 30 seconds per question.</p>
             </div>
           )}
-          {game && game.phase !== "waiting" && (
+          {game && (game.phase === "playing" || game.phase === "finished") && (
             <>
               <div className="battle-layout">
                 <BattleArena
