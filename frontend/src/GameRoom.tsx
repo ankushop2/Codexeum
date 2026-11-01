@@ -31,7 +31,9 @@ async function api<T>(
   const response = await fetch(`/api/games${path}`, {
     ...options,
     cache: "no-store",
-    signal: options.signal ?? AbortSignal.timeout(8000),
+    signal:
+      options.signal ??
+      AbortSignal.timeout(path.endsWith("/join") ? 90000 : 8000),
     headers: {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -40,9 +42,9 @@ async function api<T>(
   const data = await response.json();
   if (!response.ok)
     throw new ApiError(
-      response.status === 503
+      response.status === 503 && data.error === "Game storage unavailable"
         ? "Game storage is unavailable. Configure the backend’s Upstash Redis connection, then try again."
-        : data.error || "Request failed",
+        : data.error || data.detail || "Request failed",
       response.status,
     );
   return data;
