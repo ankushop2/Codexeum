@@ -18,6 +18,7 @@ type Game = {
     category: string;
     answers: (boolean | null)[];
     sources?: (string | null)[];
+    points?: (number | null)[];
   }[];
   winner?: number | null;
 };
@@ -615,30 +616,40 @@ export default function GameRoom({
                               : "Choose your answer before time runs out."}
                       </p>
                       <div className="pet-prompt">
-                        <label htmlFor="pet-prompt">
-                          TALK TO {myPetName.toUpperCase()}
-                        </label>
-                        <textarea
-                          id="pet-prompt"
-                          value={petPrompt}
-                          maxLength={500}
-                          placeholder="Help me solve this!"
-                          onChange={(event) => setPetPrompt(event.target.value)}
-                          disabled={game.answered || remaining === 0 || fatal}
-                        />
-                        <button
-                          className="retro-button secondary"
-                          disabled={
-                            petBusy ||
-                            !petPrompt.trim() ||
-                            game.answered ||
-                            remaining === 0 ||
-                            fatal
-                          }
-                          onClick={() => void askPet(petPrompt)}
-                        >
-                          {petBusy ? "THINKING…" : "ASK PET →"}
-                        </button>
+                        {game.question.category !== mine?.category &&
+                          !game.answered &&
+                          remaining > 0 && (
+                            <>
+                              <label htmlFor="pet-prompt">
+                                TALK TO {myPetName.toUpperCase()}
+                              </label>
+                              <textarea
+                                id="pet-prompt"
+                                value={petPrompt}
+                                maxLength={500}
+                                placeholder="Help me solve this!"
+                                onChange={(event) =>
+                                  setPetPrompt(event.target.value)
+                                }
+                                disabled={
+                                  game.answered || remaining === 0 || fatal
+                                }
+                              />
+                              <button
+                                className="retro-button secondary"
+                                disabled={
+                                  petBusy ||
+                                  !petPrompt.trim() ||
+                                  game.answered ||
+                                  remaining === 0 ||
+                                  fatal
+                                }
+                                onClick={() => void askPet(petPrompt)}
+                              >
+                                {petBusy ? "THINKING…" : "ASK PET →"}
+                              </button>
+                            </>
+                          )}
                         {petBusy && (
                           <p role="status">{myPetName} is thinking…</p>
                         )}
@@ -655,7 +666,9 @@ export default function GameRoom({
                               )}
                               {petReply.text}{" "}
                               {petReply.needsHelp
-                                ? "Give your pet a hint or choose an answer above!"
+                                ? game.question.category !== mine?.category
+                                  ? "Give your pet a hint or choose an answer above!"
+                                  : "Choose an answer above to help your pet!"
                                 : petPrompt.trim()
                                   ? "Submit your hint or clear it to let your pet answer."
                                   : "Submitting in 3 seconds. Choose another answer to take over!"}
@@ -663,7 +676,7 @@ export default function GameRoom({
                           )}
                       </div>
                       <p className="scoring-note">
-                        Correct: 2 points in your specialty, 5 in another.
+                        Correct: 2 points solo, 5 points with trainer guidance.
                       </p>
                     </>
                   )}
@@ -704,7 +717,7 @@ export default function GameRoom({
                             ? "MISS"
                             : "TIMEOUT"}
                         {round.answers[game.you] === true &&
-                          ` · +${round.category === mine?.category ? 2 : 5} PTS · ${(round.sources?.[game.you] || "trainer").toUpperCase()}`}
+                          ` · +${round.points?.[game.you] ?? (round.category === mine?.category ? 2 : 5)} PTS · ${(round.sources?.[game.you] || "trainer").toUpperCase()}`}
                       </span>
                       <span>
                         RIVAL:{" "}
@@ -714,7 +727,7 @@ export default function GameRoom({
                             ? "MISS"
                             : "TIMEOUT"}
                         {round.answers[game.you === 0 ? 1 : 0] === true &&
-                          ` · +${round.category === rival?.category ? 2 : 5} PTS · ${(round.sources?.[game.you === 0 ? 1 : 0] || "trainer").toUpperCase()}`}
+                          ` · +${round.points?.[game.you === 0 ? 1 : 0] ?? (round.category === rival?.category ? 2 : 5)} PTS · ${(round.sources?.[game.you === 0 ? 1 : 0] || "trainer").toUpperCase()}`}
                       </span>
                     </div>
                   ))}

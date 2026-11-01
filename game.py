@@ -170,6 +170,7 @@ def advance(game, now):
             "sources": [
                 game["answers"].get(str(i), {}).get("source") for i in range(2)
             ],
+            "points": [game["answers"].get(str(i), {}).get("points") for i in range(2)],
         }
     )
     game["round"] += 1
@@ -282,11 +283,13 @@ def begin_round(game, now):
 def record_answer(game, index, answer, source="trainer"):
     question = game["questions"][game["round"]]
     correct = answer == question["answer"]
-    if correct:
-        game["players"][index]["score"] += (
-            2 if game["players"][index]["category"] == question["category"] else 5
-        )
-    game["answers"][str(index)] = {"correct": correct, "source": source}
+    points = (5 if source == "team" else 2) if correct else 0
+    game["players"][index]["score"] += points
+    game["answers"][str(index)] = {
+        "correct": correct,
+        "source": source,
+        "points": points,
+    }
 
 
 def tick(game, now):
@@ -323,9 +326,13 @@ def view(game, now, index):
                 "score": p["score"]
                 - (
                     (
-                        2
-                        if p["category"] == game["questions"][game["round"]]["category"]
-                        else 5
+                        game["answers"][str(i)].get(
+                            "points",
+                            2
+                            if p["category"]
+                            == game["questions"][game["round"]]["category"]
+                            else 5,
+                        )
                     )
                     if game["phase"] == "playing"
                     and game["answers"].get(str(i), {}).get("correct")

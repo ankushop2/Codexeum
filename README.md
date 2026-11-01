@@ -45,7 +45,7 @@ flowchart LR
 2. **Pick your specialty.** Choose Geography, Art, Maths, Biology, History, Music, or Science. The two players must choose different specialties.
 3. **Create or join a room.** Player 1 shares a six-character code. Both players ready up to generate questions; either player can then press Start Game.
 4. **Battle through five questions.** There are two questions from each player's specialty and one from a shared random category. Your pet attempts each question, and you can guide it or take over. Each round lasts up to 30 seconds and ends early if both players answer.
-5. **See who won.** A correct answer earns 2 points in your specialty and 5 points in another category. The round log shows whether the pet, trainer, or team submitted each scoring answer, plus the final scores and winner or draw.
+5. **See who won.** A correct answer earns 2 points when the pet or trainer answers alone, or 5 when the trainer guides the pet. The round log shows who submitted each scoring answer, plus the final scores and winner or draw. Trainer guidance is available for questions outside the pet's specialty.
 
 The arena places your pet opposite your rival, with the question beside it. On small screens the panels stack. Imported pet artwork is shown as a first-frame portrait in battle; a true rear-facing view needs separate artwork.
 

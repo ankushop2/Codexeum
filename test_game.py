@@ -79,10 +79,9 @@ class GameTests(unittest.TestCase):
             thread.join()
         self.assertEqual(errors, [])
         state = game.get_game(self.store, self.code, self.tokens[0])
-        category = current["questions"][0]["category"]
         self.assertEqual(
             [p["score"] for p in state["players"]],
-            [2 if category == c else 5 for c in ("maths", "geography")],
+            [2, 2],
         )
         self.assertEqual(state["round"], 2)
         self.assertEqual(len(state["history"]), 1)
