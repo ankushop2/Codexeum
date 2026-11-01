@@ -70,6 +70,8 @@ Room updates use **polling**, rather than a socket connection. The health indica
 
 ## How it works
 
+Leaderboard storage uses Upstash Redis: `arena:leaders` is a sorted set of total points, `arena:profiles` stores nickname statistics, and `arena:results` is a Redis Stream containing each completed match's timestamp, scores, pet names and round outcomes. Result logging and ranking updates happen atomically with match completion, preventing duplicate recording from refreshes. These records do not use the room's one-hour expiry. Player tokens and artwork are excluded from the results stream. Configure `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` in the backend deployment for shared rankings.
+
 ```mermaid
 flowchart TB
     P1[Player 1 · browser] -->|create room / poll / answer| API[FastAPI game API]

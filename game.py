@@ -62,7 +62,22 @@ class RedisStore:
 
     def replace(self, code, old, game):
         entries = []
+        result = None
         if game["phase"] == "finished" and json.loads(old)["phase"] != "finished":
+            result = {
+                "room": code,
+                "completed_at": time.time(),
+                "players": [
+                    {
+                        "nickname": p["nickname"],
+                        "pet": p["pet"]["name"],
+                        "score": p["score"],
+                        "bot": p.get("bot", False),
+                    }
+                    for p in game["players"]
+                ],
+                "rounds": game["history"],
+            }
             scores = [p["score"] for p in game["players"]]
             for p in game["players"]:
                 if not p.get("bot"):
@@ -95,6 +110,9 @@ class RedisStore:
         script = """
 if redis.call('GET', KEYS[1]) ~= ARGV[1] then return 0 end
 redis.call('SET', KEYS[1], ARGV[2], 'EX', ARGV[3])
+if ARGV[5] ~= 'null' then
+  redis.call('XADD', KEYS[4], '*', 'result', ARGV[5])
+end
 for _, entry in ipairs(cjson.decode(ARGV[4])) do
   local raw = redis.call('HGET', KEYS[3], entry.key)
   local row = raw and cjson.decode(raw) or {points=0, games=0, wins=0}
@@ -119,14 +137,16 @@ return 1
             self.command(
                 "EVAL",
                 script,
-                3,
+                4,
                 "game:" + code,
                 "arena:leaders",
                 "arena:profiles",
+                "arena:results",
                 old,
                 json.dumps(game),
                 TTL,
                 json.dumps(entries),
+                json.dumps(result),
             )
             == 1
         )

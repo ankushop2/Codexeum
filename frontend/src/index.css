@@ -65,7 +65,7 @@ h2,
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 30px;
+  gap: 14px;
   text-align: center;
   margin: 38px 0 28px;
 }
@@ -73,6 +73,34 @@ h2,
   font-size: 9px;
   letter-spacing: 2px;
   margin: 0 0 15px;
+}
+.title > div {
+  min-width: 0;
+  text-align: left;
+}
+.title .brand-mark {
+  width: 64px;
+  height: 64px;
+  flex: 0 0 64px;
+  image-rendering: pixelated;
+}
+@media (max-width: 480px) {
+  .title {
+    gap: 10px;
+  }
+  .title .brand-mark {
+    width: 44px;
+    height: 44px;
+    flex-basis: 44px;
+  }
+  .title h1 {
+    font-size: 24px;
+  }
+  .title p {
+    font-size: 7px;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
 }
 .title h1 {
   font-size: 36px;
