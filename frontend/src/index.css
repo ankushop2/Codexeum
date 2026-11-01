@@ -1334,15 +1334,51 @@ footer {
     top: 12px;
   }
 }
-.bot-difficulty {
-  margin: 16px 0;
-  border: 2px solid #293b30;
-  padding: 10px;
+
+.match-setup {
+  margin-block: 20px;
 }
-.bot-difficulty .retro-button {
-  margin-inline: 4px;
+.setup-choice {
+  border: 0;
+  padding: 0;
+  margin: 0 0 20px;
+  min-width: 0;
 }
-.bot-difficulty .retro-button[aria-pressed="true"] {
+.setup-choice legend {
+  font-size: 10px;
+  margin-bottom: 10px;
+}
+.setup-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.setup-options label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 130px;
+  padding: 14px;
+  border: 2px solid #52644c;
+  background: #f5f1df;
+  cursor: pointer;
+}
+.setup-options label.selected {
   background: #304e39;
   color: #f0f1ce;
+  border-color: #293b30;
+}
+.setup-options input {
+  accent-color: #b54855;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+.setup-details {
+  padding: 18px;
+  border: 2px solid #52644c;
+  margin-bottom: 14px;
+}
+.setup-details > p:first-child {
+  margin-top: 0;
 }

@@ -144,3 +144,5 @@ Choose Play Against Bot to create a game with an automatically ready bot. The bo
 - `POST /api/games/{code}/start` uses the player bearer token and starts the first round only when questions are ready. Repeated calls during play do not reset the timer.
 
 For bot games, `POST /api/games` accepts `"difficulty":"easy"`, `"med"` or `"hard"` alongside `"mode":"bot"`. The default is `"med"`.
+
+Game setup first asks whether to play with a player or a bot. Player mode offers Create Room or Join Room; bot mode offers Easy, Medium or Hard without revealing answer counts.

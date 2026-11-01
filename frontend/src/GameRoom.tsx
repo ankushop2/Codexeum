@@ -93,6 +93,8 @@ export default function GameRoom({
   const [session, setSession] = useState<Session | null>(restoreSession);
   const [game, setGame] = useState<Game | null>(null);
   const [code, setCode] = useState("");
+  const [opponent, setOpponent] = useState<"player" | "bot">("player");
+  const [roomAction, setRoomAction] = useState<"create" | "join">("create");
   const [difficulty, setDifficulty] = useState<"easy" | "med" | "hard">("med");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -441,79 +443,159 @@ export default function GameRoom({
             </strong>
             <span>SPECIALTY: {category.toUpperCase()}</span>
           </div>
-          <p className="portrait-notice">
-            Your trainer name and a small pet portrait are shared with your room
-            opponent.
-          </p>
-          <p>
-            Create a room and share its code, or join your rival. Choose
-            different specialties.
-          </p>
-          <p className="scoring-note">
-            Back yourself for 5 points. Get your pet’s help for 2. Your pet can
-            help outside its specialty, and you always choose the final answer.
-          </p>
-          <button
-            className="retro-button primary"
-            disabled={busy}
-            onClick={() => void enter(false)}
+          <form
+            className="match-setup"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void enter(
+                opponent === "player" && roomAction === "join",
+                opponent,
+              );
+            }}
           >
-            {busy ? "CONNECTING…" : "CREATE ROOM →"}
-          </button>
-          <fieldset className="bot-difficulty" disabled={busy}>
-            <legend>BOT DIFFICULTY</legend>
-            {(["easy", "med", "hard"] as const).map((level) => (
-              <button
-                key={level}
-                type="button"
-                className="retro-button secondary"
-                aria-pressed={difficulty === level}
-                onClick={() => setDifficulty(level)}
-              >
-                {level === "med" ? "MEDIUM" : level.toUpperCase()}
-              </button>
-            ))}
-            <p>
-              {difficulty === "easy"
-                ? "1–3"
-                : difficulty === "med"
-                  ? "2–4"
-                  : "3–5"}{" "}
-              correct answers out of five.
-            </p>
-          </fieldset>
-          <button
-            className="retro-button secondary"
-            disabled={busy}
-            onClick={() => void enter(false, "bot")}
-          >
-            PLAY AGAINST BOT →
-          </button>
-          <div className="join-room">
-            <label htmlFor="room-code">
-              ROOM CODE
-              <input
-                id="room-code"
-                value={code}
-                maxLength={6}
-                placeholder="ABC123"
-                autoComplete="off"
-                spellCheck={false}
-                onChange={(event) =>
-                  setCode(
-                    event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""),
-                  )
-                }
-              />
-            </label>
+            <fieldset className="setup-choice" disabled={busy}>
+              <legend>WHO DO YOU WANT TO PLAY?</legend>
+              <div className="setup-options">
+                <label className={opponent === "player" ? "selected" : ""}>
+                  <input
+                    type="radio"
+                    name="opponent"
+                    value="player"
+                    checked={opponent === "player"}
+                    onChange={() => {
+                      setOpponent("player");
+                      setError("");
+                    }}
+                  />
+                  Play with player
+                </label>
+                <label className={opponent === "bot" ? "selected" : ""}>
+                  <input
+                    type="radio"
+                    name="opponent"
+                    value="bot"
+                    checked={opponent === "bot"}
+                    onChange={() => {
+                      setOpponent("bot");
+                      setError("");
+                    }}
+                  />
+                  Play with bot
+                </label>
+              </div>
+            </fieldset>
+            {opponent === "player" ? (
+              <div className="setup-details">
+                <p>
+                  Create a room to invite a friend, or join with their code.
+                  Choose different specialties.
+                </p>
+                <fieldset className="setup-choice" disabled={busy}>
+                  <legend>ROOM</legend>
+                  <div className="setup-options">
+                    <label
+                      className={roomAction === "create" ? "selected" : ""}
+                    >
+                      <input
+                        type="radio"
+                        name="room-action"
+                        value="create"
+                        checked={roomAction === "create"}
+                        onChange={() => setRoomAction("create")}
+                      />
+                      Create room
+                    </label>
+                    <label className={roomAction === "join" ? "selected" : ""}>
+                      <input
+                        type="radio"
+                        name="room-action"
+                        value="join"
+                        checked={roomAction === "join"}
+                        onChange={() => setRoomAction("join")}
+                      />
+                      Join room
+                    </label>
+                  </div>
+                </fieldset>
+                {roomAction === "join" && (
+                  <div className="join-room">
+                    <label htmlFor="room-code">
+                      ROOM CODE
+                      <input
+                        id="room-code"
+                        value={code}
+                        maxLength={6}
+                        minLength={6}
+                        required
+                        placeholder="ABC123"
+                        autoComplete="off"
+                        spellCheck={false}
+                        disabled={busy}
+                        onChange={(event) =>
+                          setCode(
+                            event.target.value
+                              .toUpperCase()
+                              .replace(/[^A-Z0-9]/g, ""),
+                          )
+                        }
+                      />
+                    </label>
+                  </div>
+                )}
+                <p className="portrait-notice">
+                  Your trainer name and a small pet portrait are shared with the
+                  other player.
+                </p>
+              </div>
+            ) : (
+              <fieldset className="setup-choice setup-details" disabled={busy}>
+                <legend>BOT DIFFICULTY</legend>
+                <div className="setup-options">
+                  {(["easy", "med", "hard"] as const).map((level) => (
+                    <label
+                      key={level}
+                      className={difficulty === level ? "selected" : ""}
+                    >
+                      <input
+                        type="radio"
+                        name="difficulty"
+                        value={level}
+                        checked={difficulty === level}
+                        onChange={() => setDifficulty(level)}
+                      />
+                      {level === "med"
+                        ? "Medium"
+                        : level === "easy"
+                          ? "Easy"
+                          : "Hard"}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            )}
             <button
-              className="retro-button secondary"
-              disabled={busy || code.length !== 6}
-              onClick={() => void enter(true)}
+              type="submit"
+              className="retro-button primary"
+              disabled={
+                busy ||
+                (opponent === "player" &&
+                  roomAction === "join" &&
+                  code.length !== 6)
+              }
             >
-              JOIN →
+              {busy
+                ? "CONNECTING…"
+                : opponent === "bot"
+                  ? "PLAY WITH BOT →"
+                  : roomAction === "join"
+                    ? "JOIN ROOM →"
+                    : "CREATE ROOM →"}
             </button>
-          </div>
+          </form>
+          <p className="scoring-note">
+            Back yourself for 5 points. Get your pet’s help for 2. You always
+            choose the final answer.
+          </p>
           <button className="text-button" disabled={busy} onClick={onBack}>
             ← Change specialty
           </button>
@@ -522,11 +604,19 @@ export default function GameRoom({
         <>
           <div className="room-code">
             <span>
-              ROOM <strong>{session.code}</strong>
+              {game?.bot_difficulty ? (
+                "BOT MATCH"
+              ) : (
+                <>
+                  ROOM <strong>{session.code}</strong>
+                </>
+              )}
             </span>
-            <button className="text-button" onClick={() => void copyCode()}>
-              COPY CODE
-            </button>
+            {!game?.bot_difficulty && (
+              <button className="text-button" onClick={() => void copyCode()}>
+                COPY CODE
+              </button>
+            )}
           </div>
           {notice && <p role="status">{notice}</p>}
           {!game && !fatal && <p role="status">Connecting to your room…</p>}

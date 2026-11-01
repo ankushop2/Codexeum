@@ -369,7 +369,18 @@ def begin_round(game, now):
     if any(p.get("bot") for p in game["players"]):
         game["bot_due"] = now + 2
         question = game["questions"][game["round"]]
-        game["bot_answer"] = question["answer"]
+        if "bot_correct_rounds" not in game:
+            game["bot_answer"] = secrets.randbelow(len(question["options"]))
+        elif game["round"] in game["bot_correct_rounds"]:
+            game["bot_answer"] = question["answer"]
+        else:
+            game["bot_answer"] = secrets.choice(
+                [
+                    index
+                    for index in range(len(question["options"]))
+                    if index != question["answer"]
+                ]
+            )
 
 
 def record_answer(game, index, answer, source="trainer"):

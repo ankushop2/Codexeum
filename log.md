@@ -18,3 +18,5 @@ Bot answers after two seconds without an AI call.
 Bot difficulty bases are easy 2, med 3, hard 4 correct answers out of five.
 Bot correct-answer count gets a uniform random offset of -1, 0 or +1 per game (assumed).
 Bot difficulty defaults to med (assumed).
+Setup chooses player or bot before showing room options or difficulty.
+Bot difficulty UI hides correct-answer counts.
