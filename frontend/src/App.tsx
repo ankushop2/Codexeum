@@ -141,10 +141,13 @@ export default function App() {
       setPets((current) => [
         ...current,
         {
-          name: file.name
-            .replace(/\.[^.]+$/, "")
-            .slice(0, 20)
-            .toUpperCase(),
+          name:
+            file.name.replace(/\.[^.]+$/, "").toLowerCase() === "spritesheet"
+              ? ""
+              : file.name
+                  .replace(/\.[^.]+$/, "")
+                  .slice(0, 20)
+                  .toUpperCase(),
           color: "#aaa0e8",
           image: url,
           columns: importedColumns,
@@ -220,7 +223,7 @@ export default function App() {
                 <button aria-label="Previous pet" onClick={() => cycle(-1)}>
                   ◀
                 </button>
-                <h2>{pet.name}</h2>
+                <h2>{pet.name || "NAME YOUR PET"}</h2>
                 <button aria-label="Next pet" onClick={() => cycle(1)}>
                   ▶
                 </button>
@@ -408,6 +411,25 @@ export default function App() {
                 </small>
               </div>
             )}
+            {pet.image && (
+              <label className="nickname-label" htmlFor="pet-name">
+                PET NAME
+                <input
+                  id="pet-name"
+                  placeholder="e.g. Bitwick"
+                  maxLength={20}
+                  value={pet.name}
+                  onChange={(event) => {
+                    const name = event.target.value.toUpperCase();
+                    setPets((current) =>
+                      current.map((item, i) =>
+                        i === index ? { ...item, name } : item,
+                      ),
+                    );
+                  }}
+                />
+              </label>
+            )}
             <label className="nickname-label" htmlFor="nickname">
               TRAINER NAME
               <input
@@ -426,9 +448,14 @@ export default function App() {
             )}
             <button
               className="retro-button primary"
-              disabled={!nickname.trim()}
+              disabled={!nickname.trim() || !pet.name.trim()}
               onClick={() => {
                 setNickname(nickname.trim());
+                setPets((current) =>
+                  current.map((item, i) =>
+                    i === index ? { ...item, name: item.name.trim() } : item,
+                  ),
+                );
                 setStep(1);
               }}
             >
