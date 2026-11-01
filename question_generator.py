@@ -19,8 +19,8 @@ class ConfigurationError(GenerationError):
 
 DIFFICULTY_PROMPTS = {
     "easy": "Use beginner-friendly knowledge, clear vocabulary and simple recall or one-step reasoning. Avoid obscure trivia.",
-    "med": "Require solid subject knowledge and application of concepts, with short calculations or a few reasoning steps. Avoid trivial recall and specialist-only knowledge.",
-    "hard": "Require advanced subject knowledge, challenging application or compact multi-step reasoning, with plausible distractors based on common misconceptions. Avoid ambiguous or trick questions.",
+    "med": "Require seventh-grade subject knowledge and simple application, with short calculations or one- or two-step reasoning. Avoid specialist knowledge.",
+    "hard": "Challenge a seventh-grader with application of middle-school concepts or compact multi-step reasoning. Use plausible distractors based on common misconceptions, without introducing above-grade material or trick questions.",
 }
 
 
@@ -39,12 +39,17 @@ def generate_questions(
                 {
                     "role": "system",
                     "content": (
-                        "Create five distinct multiple-choice quiz questions at the requested difficulty. "
-                        "Apply that difficulty to every question, including the random category. "
-                        "For Code questions, cover Python, JavaScript or debugging and clearly state the language. "
+                        "Create five distinct multiple-choice quiz questions suitable for seventh-grade students (ages 12 to 13). "
+                        "Use age-appropriate vocabulary and middle-school knowledge for every question, including the random category. "
+                        "Apply the requested difficulty within that grade level; never require A-level, specialist high-school or university knowledge. "
+                        "For maths use fractions, ratios, percentages, basic algebra and geometry. For science use introductory "
+                        "biology, matter, forces and energy. For geography, history, art and music use foundational concepts. "
+                        "For Code questions, use beginner-friendly Python, JavaScript or debugging with short snippets, "
+                        "variables and loops, and clearly state the language. "
                         "Keep stems concise enough for a 60-second quiz; supply necessary data, assumptions and units. "
                         "Each question must have four distinct options labelled A, B, C and D, one unambiguously "
-                        "correct answer and three plausible distractors. Check calculations and factual accuracy. "
+                        "correct answer and three plausible distractors based on common misconceptions. "
+                        "Check calculations and factual accuracy. Avoid ambiguous or trick questions; do not reveal the solution in the stem. "
                         "Return the requested category and difficulty label on every question. "
                         + DIFFICULTY_PROMPTS[difficulty]
                     ),
@@ -118,7 +123,7 @@ def choose_eliminations(question, guidance=""):
                     {
                         "type": "choice",
                         "name": "eliminate",
-                        "instructions": "Help the learner reason about this quiz by removing two incorrect options. Choose the most useful pair of distractors to eliminate. Only choose from the supplied safe pairs.",
+                        "instructions": "Help a seventh-grade learner (ages 12 to 13) reason about this quiz by removing two incorrect options. Choose the most useful pair of distractors to eliminate. Only choose from the supplied safe pairs.",
                         "choices": [
                             {
                                 "value": key,
