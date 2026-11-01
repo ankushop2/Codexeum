@@ -1,9 +1,11 @@
 from pathlib import Path
 from typing import Annotated, Any
+import os
 
 from dotenv import load_dotenv
 from fastapi import Body, FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
+from openai import APIError, OpenAI
 
 from game import (
     GameError,
@@ -100,6 +102,42 @@ def answer(code: str, request: Request, data: Annotated[Any, Body()] = None):
     return answer_game(
         store, code.upper(), token(request), data.get("round"), data.get("answer")
     )
+
+
+@app.post("/api/games/{code}/pet")
+def ask_pet(code: str, request: Request, data: Annotated[Any, Body()] = None):
+    data = body(data)
+    prompt = data.get("prompt")
+    if not isinstance(prompt, str) or not prompt.strip() or len(prompt) > 500:
+        raise GameError("Enter a prompt of up to 500 characters", 400)
+    game = get_game(store, code.upper(), token(request))
+    if (
+        game["phase"] != "playing"
+        or game["round"] != data.get("round")
+        or game["answered"]
+    ):
+        raise GameError("Round is no longer active", 409)
+    if not os.getenv("OPENAI_API_KEY"):
+        raise ConfigurationError("OPENAI_API_KEY is not configured on the server.")
+    question = game["question"]
+    options = "\n".join(
+        f"{chr(65 + i)}. {option}" for i, option in enumerate(question["options"])
+    )
+    try:
+        response = OpenAI(timeout=7.0, max_retries=0).responses.create(
+            model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+            instructions="You are a player's friendly battle pet. Help with the current quiz question. Be brief, suggest an option when useful, and never claim you submitted an answer. The player chooses the answer.",
+            input=f"Question: {question['prompt']}\n{options}\n\nPlayer's prompt: {prompt.strip()}",
+            max_output_tokens=150,
+        )
+    except APIError as exc:
+        raise GenerationError(
+            "Your pet couldn't respond. Try answering yourself."
+        ) from exc
+    return {
+        "round": game["round"],
+        "reply": response.output_text or "I couldn't think of an answer. You choose!",
+    }
 
 
 @app.get("/{path:path}", include_in_schema=False)

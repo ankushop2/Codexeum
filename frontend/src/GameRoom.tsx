@@ -88,6 +88,12 @@ export default function GameRoom({
   const [notice, setNotice] = useState("");
   const [remaining, setRemaining] = useState(0);
   const [fatal, setFatal] = useState(false);
+  const [petPrompt, setPetPrompt] = useState("");
+  const [petBusy, setPetBusy] = useState(false);
+  const [petReply, setPetReply] = useState<{
+    round: number;
+    text: string;
+  } | null>(null);
   const version = useRef(0);
   const submitting = useRef(false);
   const clock = useRef({ deadline: 0, serverTime: 0, receivedAt: 0 });
@@ -265,6 +271,32 @@ export default function GameRoom({
     }
   }
 
+  async function askPet() {
+    if (!session || !game?.round || !petPrompt.trim() || petBusy) return;
+    const round = game.round;
+    setPetBusy(true);
+    setPetReply(null);
+    try {
+      const result = await api<{ round: number; reply: string }>(
+        `/${session.code}/pet`,
+        {
+          method: "POST",
+          body: JSON.stringify({ round, prompt: petPrompt.trim() }),
+        },
+        session.token,
+      );
+      setPetReply({ round: result.round, text: result.reply });
+    } catch (error) {
+      setPetReply({
+        round,
+        text:
+          error instanceof Error ? error.message : "Your pet couldn't respond.",
+      });
+    } finally {
+      setPetBusy(false);
+    }
+  }
+
   function leave() {
     version.current += 1;
     setSession(null);
@@ -436,9 +468,41 @@ export default function GameRoom({
                               ? "Sending your answer…"
                               : "Choose your answer before time runs out."}
                       </p>
+                      <div className="pet-prompt">
+                        <label htmlFor="pet-prompt">
+                          TALK TO {myPetName.toUpperCase()}
+                        </label>
+                        <textarea
+                          id="pet-prompt"
+                          value={petPrompt}
+                          maxLength={500}
+                          placeholder="Help me solve this!"
+                          onChange={(event) => setPetPrompt(event.target.value)}
+                          disabled={game.answered || remaining === 0 || fatal}
+                        />
+                        <button
+                          className="retro-button secondary"
+                          disabled={
+                            petBusy ||
+                            !petPrompt.trim() ||
+                            game.answered ||
+                            remaining === 0 ||
+                            fatal
+                          }
+                          onClick={() => void askPet()}
+                        >
+                          {petBusy ? "THINKING…" : "ASK PET →"}
+                        </button>
+                        {petReply && petReply.round === game.round && (
+                          <p role="status">{petReply.text}</p>
+                        )}
+                        <p>
+                          Your pet can suggest an answer. Choose an option above
+                          to submit it.
+                        </p>
+                      </div>
                       <p className="scoring-note">
-                        Correct: 2 points in your specialty, 5 in another. Human
-                        answers only for now; Codex is not connected.
+                        Correct: 2 points in your specialty, 5 in another.
                       </p>
                     </>
                   )}

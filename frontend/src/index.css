@@ -772,6 +772,33 @@ footer {
   font-weight: bold;
   margin-right: 10px;
 }
+.pet-prompt {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+}
+.pet-prompt label {
+  font-size: 10px;
+}
+.pet-prompt textarea {
+  width: 100%;
+  min-height: 70px;
+  resize: vertical;
+  padding: 10px;
+  border: 2px solid #43513b;
+  background: #f7f4d9;
+  color: #263b2e;
+  font:
+    13px "Space Mono",
+    monospace;
+}
+.pet-prompt .retro-button {
+  margin: 0;
+}
+.pet-prompt p {
+  margin: 0;
+  font-size: 11px;
+}
 .round-history {
   border-top: 2px solid #87996e;
   margin: 22px 0;
