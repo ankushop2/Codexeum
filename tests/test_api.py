@@ -56,7 +56,24 @@ def test_generator_requests_five_questions(monkeypatch, sample):
     monkeypatch.setattr(question_generator, "OpenAI", lambda **kwargs: client)
     result = question_generator.generate_questions("maths", "geography", "art")
     assert [q["category"] for q in result] == categories
-    assert all(q["answer"] == 1 for q in result)
+    assert all(q["answer"] == 1 for q in result if q["category"] != "geography")
+    continents = {
+        "Kenya": "Africa",
+        "Brazil": "South America",
+        "France": "Europe",
+        "Japan": "Asia",
+        "Canada": "North America",
+        "Australia": "Oceania",
+    }
+    for question in result:
+        if question["category"] == "geography":
+            assert question["kind"] == "map"
+            country = (
+                question["prompt"]
+                .removeprefix("Tap the continent where ")
+                .removesuffix(" is located.")
+            )
+            assert question["options"][question["answer"]] == continents[country]
     assert all(q["difficulty"] == "hard" for q in result)
     prompt = client.responses.parse.call_args.kwargs["input"][0]["content"]
     assert "UK A-level" in prompt

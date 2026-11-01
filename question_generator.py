@@ -5,8 +5,8 @@ from typing import Any
 from openai import APIError, OpenAI
 from pydantic import ValidationError
 
-from models import QuestionSet
 from interactive_questions import interactive_questions
+from models import QuestionSet
 
 
 class GenerationError(Exception):
@@ -34,7 +34,7 @@ def generate_questions(first_category, second_category, random_category):
                         "Target subject-specific A-level depth: mathematical problem-solving, scientific mechanisms "
                         "and interpretation of evidence, geographic processes, historical causation and source interpretation, "
                         "or art and music theory and contextual analysis as appropriate. "
-                        "Keep stems concise enough for a 30-second quiz; supply any necessary data, assumptions and units. "
+                        "Keep stems concise enough for a 60-second quiz; supply any necessary data, assumptions and units. "
                         "Each must have exactly four distinct options labelled A, B, C and D, one unambiguously "
                         "correct answer, and three plausible distractors based on common misconceptions or reasoning errors. "
                         "Check calculations and factual accuracy before returning the questions. Avoid subjective, ambiguous "

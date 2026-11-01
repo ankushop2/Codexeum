@@ -2125,12 +2125,7 @@ footer {
   image-rendering: pixelated;
   animation: intro-sprite-play 900ms steps(5) infinite;
 }
-.challenge-label {
-  padding: 12px;
-  border: 2px solid #806622;
-  background: #fff2b9;
-  font-size: 11px;
-}
+
 .answer-options .eliminated-option {
   text-decoration: line-through;
   opacity: 0.4;

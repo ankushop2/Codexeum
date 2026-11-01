@@ -276,6 +276,8 @@ class ArenaApp(App):
         ready.label = (
             "START BATTLE"
             if phase == "ready"
+            else "RETRY PREPARATION"
+            if phase == "waiting" and state.get("preparation_failed")
             else "READY ✓"
             if mine.get("ready")
             else "READY"
@@ -283,7 +285,11 @@ class ArenaApp(App):
         if (
             phase == "waiting"
             and mine.get("ready")
-            and not (len(players) == 2 and all(p.get("ready") for p in players))
+            and not (
+                state.get("preparation_failed")
+                and len(players) == 2
+                and all(p.get("ready") for p in players)
+            )
         ):
             ready.disabled = True
         question = self.query_one("#question", Static)

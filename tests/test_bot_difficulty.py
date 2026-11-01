@@ -39,7 +39,7 @@ def test_difficulty_controls_exact_correct_count(difficulty, base, offset):
     start_playing(store, code, token)
     for _ in range(5):
         raw = json.loads(store.get(code))
-        with patch("game.time.time", return_value=raw["deadline"] - 28):
+        with patch("game.time.time", return_value=raw["deadline"] - 58):
             state = game.get_game(store, code, token)
             repeated = game.get_game(store, code, token)
             assert state == repeated

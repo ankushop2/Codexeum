@@ -9,6 +9,7 @@ import type { BattlePet, Fighter } from "./BattleArena";
 type Session = { code: string; token: string };
 type Game = {
   code: string;
+  preparation_failed: boolean;
   bot_difficulty?: "easy" | "med" | "hard";
   phase: "waiting" | "generating" | "ready" | "intro" | "playing" | "finished";
   players: (Fighter & { ready: boolean; bot: boolean; controller?: string })[];
@@ -551,6 +552,10 @@ export default function GameRoom({
 
   const mine = game?.players[game.you];
   const rival = game?.players[game.you === 0 ? 1 : 0];
+  const canRetryPreparation =
+    !!game?.preparation_failed &&
+    game.players.length === 2 &&
+    game.players.every((player) => player.ready);
   const lastRound = game?.history.at(-1);
   const myHit = lastRound?.answers[game?.you ?? 0] === true;
   const rivalHit = lastRound?.answers[game?.you === 0 ? 1 : 0] === true;
@@ -823,14 +828,20 @@ export default function GameRoom({
               {game.phase === "waiting" && (
                 <button
                   className="retro-button primary"
-                  disabled={busy || fatal}
+                  disabled={
+                    busy || fatal || (!!mine?.ready && !canRetryPreparation)
+                  }
                   onClick={() => void lobbyAction("ready")}
                 >
                   {busy
                     ? "PREPARING…"
-                    : mine?.ready
-                      ? "READY · RETRY PREPARATION"
-                      : "READY UP →"}
+                    : canRetryPreparation
+                      ? "RETRY PREPARATION →"
+                      : mine?.ready
+                        ? game.players.length < 2
+                          ? "WAITING FOR PLAYER TO JOIN…"
+                          : "WAITING FOR OTHER PLAYER…"
+                        : "READY UP →"}
                 </button>
               )}
               {game.phase === "generating" && (
@@ -853,7 +864,12 @@ export default function GameRoom({
                     : game.bot_difficulty}
                 </p>
               )}
-              <p>Five rounds · 30 seconds per question.</p>
+              <p>Five rounds · 60 seconds per question.</p>
+              {canRetryPreparation && (
+                <p role="status">
+                  Question preparation failed or timed out. Try again.
+                </p>
+              )}
             </div>
           )}
           {game &&
@@ -909,12 +925,6 @@ export default function GameRoom({
                             {remaining}s
                           </strong>
                         </div>
-                        {game.question.difficulty === "hard" && !autonomous && (
-                          <p className="challenge-label">
-                            ✦ A-LEVEL CHALLENGE · Ask your pet to eliminate two
-                            options
-                          </p>
-                        )}
                         <h2 className="question">{game.question.prompt}</h2>
                         {petBusy && (
                           <div className="pet-advice" role="status">

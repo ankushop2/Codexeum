@@ -9,7 +9,7 @@ Codexeum is a retro quiz game for curious kids. Pick a pet, explore subjects lik
 1. Choose a starter pet or import your own Codex pet.
 2. Enter a nickname and pick your pet’s subject.
 3. Play with a friend using a room code, or choose the computer.
-4. Ready up, start the game and answer five questions—30 seconds each.
+4. Ready up, start the game and answer five questions—60 seconds each.
 5. Review what you learned, explore practice cards and see your pet climb the leaderboard.
 
 **Correct answer:** 5 points on your own, or 2 after pet advice. Wrong answers earn 0. You always choose the final answer.
@@ -99,6 +99,6 @@ Terminal dependencies are optional and are not installed in the production Docke
 
 ## Battle intro and challenge help
 
-Start Game opens a three-second intro before the first 30-second question. Imported spritesheets share a compact six-frame idle strip (576×96 PNG) alongside the existing portrait. Both players see their pets enter; starter pets and single images use a slide-in fallback.
+Start Game opens a three-second intro before the first 60-second question. Imported spritesheets share a compact six-frame idle strip (576×96 PNG) alongside the existing portrait. Both players see their pets enter; starter pets and single images use a slide-in fallback.
 
-All five questions target UK A-level depth (ages 16–18), including the random category. They require advanced knowledge or application and reasoning, with concise stems suitable for the 30-second timer. Challenge questions offer an explicit pet-help button even in your own specialty. Asking for help calls the OpenAI Decisions endpoint (`/v1/decisions`, using `PET_MODEL`, default `gpt-6-luna`) to choose two wrong options to eliminate. The server limits the choice to safe pairs, preserves the correct option, saves the hint for reconnects, and scores correct answers after elimination as assisted answers (2 points). A slow response after the round closes is rejected. Hardness is prompted and tagged, not a guarantee that every player will need help.
+All five questions target UK A-level depth (ages 16–18), including the random category. They require advanced knowledge or application and reasoning, with concise stems suitable for the 60-second timer. Challenge questions offer an explicit pet-help button even in your own specialty. Asking for help calls the OpenAI Decisions endpoint (`/v1/decisions`, using `PET_MODEL`, default `gpt-6-luna`) to choose two wrong options to eliminate. The server limits the choice to safe pairs, preserves the correct option, saves the hint for reconnects, and scores correct answers after elimination as assisted answers (2 points). A slow response after the round closes is rejected. Hardness is prompted and tagged, not a guarantee that every player will need help.

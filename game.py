@@ -25,7 +25,7 @@ def category_pool(category):
 
 
 BOT_DIFFICULTIES = {"easy": 2, "med": 3, "hard": 4}
-ROUND_SECONDS = 30
+ROUND_SECONDS = 60
 TTL = 3600
 CAS = "if redis.call('GET', KEYS[1]) == ARGV[1] then redis.call('SET', KEYS[1], ARGV[2], 'EX', ARGV[3]); return 1 else return 0 end"
 
@@ -368,8 +368,6 @@ def ready_game(store, code, token):
 
     def claim(game, now):
         index = identify(game, token)
-        if game["phase"] == "generating" and now >= game["generation_deadline"]:
-            game["phase"] = "waiting"
         if game["phase"] != "waiting":
             return lambda game, now: (False, index, game)
         game["players"][index]["ready"] = True
@@ -378,7 +376,10 @@ def ready_game(store, code, token):
         )
         if generate:
             game.update(
-                phase="generating", generation=generation, generation_deadline=now + 90
+                phase="generating",
+                generation=generation,
+                generation_deadline=now + 90,
+                preparation_failed=False,
             )
         return lambda game, now: (generate, index, game)
 
@@ -397,6 +398,7 @@ def ready_game(store, code, token):
         def reset(game, now):
             if game.get("generation") == generation and game["phase"] == "generating":
                 game["phase"] = "waiting"
+                game["preparation_failed"] = True
             return lambda game, now: None
 
         update(store, code, reset)
@@ -405,7 +407,7 @@ def ready_game(store, code, token):
     def finish(game, now):
         if game.get("generation") != generation or game["phase"] != "generating":
             raise GameError("Question generation was replaced; refresh the room", 409)
-        game.update(questions=questions, phase="ready")
+        game.update(questions=questions, phase="ready", preparation_failed=False)
         return lambda game, now: view(game, now, index)
 
     return update(store, code, finish)
@@ -461,6 +463,7 @@ def tick(game, now):
         begin_round(game, now)
     if game["phase"] == "generating" and now >= game["generation_deadline"]:
         game["phase"] = "waiting"
+        game["preparation_failed"] = True
     if game["phase"] != "playing":
         return
     if game.get("bot_due", float("inf")) <= now:
@@ -482,6 +485,8 @@ def view(game, now, index):
     result = {
         "code": game["code"],
         "phase": game["phase"],
+        "preparation_failed": game["phase"] == "waiting"
+        and game.get("preparation_failed", bool(game.get("generation"))),
         "players": [
             {
                 "category": p["category"],

@@ -49,7 +49,7 @@ def test_intro_before_clock_and_cannot_skip():
     with patch("game.time.time", return_value=103):
         state = game.get_game(store, code, tokens[0])
         assert state["phase"] == "playing"
-        assert state["deadline"] == 133
+        assert state["deadline"] == 163
 
 
 def hard_round(store, code, token):
@@ -167,3 +167,21 @@ def test_intro_strip_dimensions_are_validated():
     assert game.appearance({"pet": {"intro": strip}})["pet"]["intro"] == strip
     with pytest.raises(game.GameError):
         game.appearance({"pet": {"intro": png(128, 128)}})
+
+
+def test_round_stays_open_at_thirty_seconds_and_expires_at_sixty():
+    store, code, tokens = setup_game()
+    with patch("game.time.time", return_value=100):
+        game.start_game(store, code, tokens[0])
+    with patch("game.time.time", return_value=103):
+        first = game.get_game(store, code, tokens[0])
+    assert first["deadline"] == 163
+    with patch("game.time.time", return_value=133):
+        assert game.get_game(store, code, tokens[0])["round"] == 1
+    with patch("game.time.time", return_value=162.9):
+        game.answer_game(store, code, tokens[0], 1, 2)
+    with patch("game.time.time", return_value=163):
+        state = game.get_game(store, code, tokens[1])
+    assert state["round"] == 2
+    assert state["deadline"] == 223
+    assert state["history"][0]["answers"] == [True, None]

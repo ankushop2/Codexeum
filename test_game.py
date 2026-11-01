@@ -104,7 +104,7 @@ class GameTests(unittest.TestCase):
             state = game.get_game(self.store, self.code, self.tokens[0])
         self.assertEqual(state["round"], 2)
         self.assertEqual(state["history"][0]["answers"], [None, None])
-        self.assertEqual(state["deadline"], current["deadline"] + 30)
+        self.assertEqual(state["deadline"], current["deadline"] + 60)
 
     def test_complete_five_rounds_and_hide_answers(self):
         for round_number in range(1, 6):

@@ -1,6 +1,6 @@
 Each game has two players and five questions.
 Player 1 creates a game and shares a code with player 2.
-Each round has a 30-second timeout.
+Each round has a 60-second timeout.
 Advance immediately when both players answer (assumed).
 Each game has one category per player and one random category.
 Question generation supplies two questions from each player category and one from the random category.
@@ -23,8 +23,10 @@ Bot difficulty UI hides correct-answer counts.
 Round results play once per round: correct pets cheer, wrong or timed-out pets receive falling arrows.
 Round effects last three seconds and do not block answers or change server deadlines.
 Reduced-motion users see static round feedback instead of movement.
-Battle intro lasts three seconds before the first 30-second question begins.
+Battle intro lasts three seconds before the first 60-second question begins.
 Imported sprites use six idle-row frames for the intro; single images and starter pets slide in.
 All five questions target UK A-level difficulty, including the random category.
 Pet help on hard questions uses the OpenAI Decisions API to eliminate exactly two wrong options.
 Hard-question help remains optional; player skill cannot be guaranteed by question generation.
+Ready players wait for their opponent; retry preparation is shown only after generation fails or times out.
+The A-level question banner is hidden; question difficulty remains unchanged.
