@@ -1,0 +1,13 @@
+node_modules/
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+public/
+.vercel/
+.env
+.env.*
+!.env.example
+.DS_Store
+*.tsbuildinfo
+uv.lock

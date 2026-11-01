@@ -1,0 +1,18 @@
+{
+  "name": "codex-pet-battle",
+  "private": true,
+  "packageManager": "pnpm@10.23.0",
+  "scripts": {
+    "dev": "concurrently --kill-others -n api,web \"uv run flask --app app run --debug --port 5001\" \"pnpm --dir frontend dev\"",
+    "build": "pnpm --dir frontend build",
+    "typecheck": "pnpm --dir frontend exec tsc -b",
+    "quality-check": "pnpm typecheck",
+    "format": "prettier --write . && uv run ruff format app.py",
+    "format:check": "prettier --check . && uv run ruff format --check app.py",
+    "start": "uv run gunicorn --bind 0.0.0.0:8000 app:app"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.0",
+    "prettier": "^3.6.0"
+  }
+}
