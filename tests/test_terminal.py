@@ -106,6 +106,12 @@ def test_terminal_new_room_and_five_autoplay_rounds(monkeypatch, tmp_path):
                 await app.ready()
                 assert app.game["phase"] == "ready"
                 await app.ready()
+                assert app.game["phase"] == "intro"
+                assert not app.thinking
+                for _ in range(50):
+                    await pilot.pause(0.1)
+                    if app.game["phase"] == "playing":
+                        break
                 assert app.game["phase"] == "playing"
                 app.save_screenshot("arena.svg", path=str(tmp_path))
                 for _ in range(150):
@@ -200,7 +206,11 @@ def test_human_answer_cancels_pending_codex_move(monkeypatch):
                         break
                 await app.ready()
                 await app.ready()
-                await pilot.pause(0.1)
+                assert app.game["phase"] == "intro"
+                for _ in range(50):
+                    await pilot.pause(0.1)
+                    if app.thinking:
+                        break
                 assert app.thinking
                 app.action_answer(0)
                 await pilot.pause(0.2)

@@ -9,6 +9,14 @@ import app
 import game
 
 
+def start_playing(store, code, token):
+    started = game.start_game(store, code, token)
+    if started["phase"] == "intro":
+        with patch("game.time.time", return_value=started["intro_ends_at"]):
+            return game.get_game(store, code, token)
+    return started
+
+
 def generated_questions(first, second, other):
     return [
         {
@@ -57,7 +65,7 @@ class GameTests(unittest.TestCase):
         self.tokens = [self.first["token"], self.second["token"]]
         for token in self.tokens:
             game.ready_game(self.store, self.code, token)
-        game.start_game(self.store, self.code, self.tokens[0])
+        start_playing(self.store, self.code, self.tokens[0])
 
     def test_concurrent_answers_score_and_advance_once(self):
         current = json.loads(self.store.get(self.code))
@@ -178,7 +186,9 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(prepared.json()["phase"], "ready")
         self.assertNotIn("question", prepared.json())
         started = self.client.post(f"/api/games/{code}/start", headers=headers)
-        self.assertEqual(started.json()["deadline"] - started.json()["server_time"], 30)
+        self.assertEqual(started.json()["phase"], "intro")
+        with patch("game.time.time", return_value=started.json()["intro_ends_at"]):
+            self.client.get(f"/api/games/{code}", headers=headers)
         state = self.client.get(f"/api/games/{code}", headers=headers)
         self.assertEqual(state.json()["phase"], "playing")
         self.assertEqual(state.headers["Cache-Control"], "no-store")

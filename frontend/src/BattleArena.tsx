@@ -1,6 +1,11 @@
 import type { CSSProperties } from "react";
 
-export type BattlePet = { name: string; color: string; image?: string };
+export type BattlePet = {
+  name: string;
+  color: string;
+  image?: string;
+  intro?: string;
+};
 export type Fighter = {
   category: string;
   score: number;
@@ -8,14 +13,27 @@ export type Fighter = {
   pet?: BattlePet;
 };
 
-function Creature({ pet, rear }: { pet: BattlePet; rear?: boolean }) {
+function Creature({
+  pet,
+  rear,
+  intro,
+}: {
+  pet: BattlePet;
+  rear?: boolean;
+  intro?: boolean;
+}) {
   return (
     <div
       className={`battle-creature ${rear ? "rear" : "front"}`}
       role="img"
       aria-label={`${pet.name}, facing the opponent`}
     >
-      {pet.image ? (
+      {intro && pet.intro ? (
+        <span
+          className="intro-sprites"
+          style={{ backgroundImage: `url("${pet.intro}")` }}
+        />
+      ) : pet.image ? (
         <img src={pet.image} alt="" />
       ) : (
         <div
@@ -45,11 +63,13 @@ function RoundPet({
   rear,
   result,
   opponent,
+  intro,
 }: {
   pet: BattlePet;
   rear?: boolean;
   result?: Outcome;
   opponent?: Outcome;
+  intro?: boolean;
 }) {
   const resolved = result !== undefined;
   const reaction = !resolved ? "" : result ? "round-cheer" : "round-miss";
@@ -58,7 +78,7 @@ function RoundPet({
       className={`round-pet ${reaction} ${result && !opponent ? "round-attack" : ""}`}
     >
       <div className="pet-motion">
-        <Creature pet={pet} rear={rear} />
+        <Creature pet={pet} rear={rear} intro={intro} />
       </div>
       {resolved && (
         <div className="pet-reaction" aria-hidden="true">
@@ -145,19 +165,40 @@ export default function BattleArena({
   nickname,
   message,
   roundResult,
+  introRemaining,
 }: {
   mine?: Fighter;
   rival?: Fighter;
   pet: BattlePet;
   nickname: string;
   message: string;
+  introRemaining?: number;
   roundResult?: { round: number; mine: Outcome; rival: Outcome };
 }) {
   const myPet = mine?.pet || pet;
   const enemyPet = rival?.pet || { name: "RIVAL", color: "#edac79" };
   return (
     <div className="battle-display">
-      <div className="battle-field">
+      <div
+        className={`battle-field ${introRemaining !== undefined ? "battle-entering" : ""}`}
+      >
+        {introRemaining !== undefined && (
+          <div className="battle-intro" role="status">
+            <div className="intro-shutter top" />
+            <div className="intro-shutter bottom" />
+            <div className="intro-title">
+              <small>A CHALLENGER APPEARS!</small>
+              <strong>
+                {myPet.name} <span>VS</span> {enemyPet.name}
+              </strong>
+              <small>
+                {introRemaining > 0
+                  ? `GET READY · ${introRemaining}`
+                  : "LET’S BATTLE!"}
+              </small>
+            </div>
+          </div>
+        )}
         <div className="fighter-card enemy-card">
           <div>
             <strong>{enemyPet.name}</strong>
@@ -176,6 +217,7 @@ export default function BattleArena({
           <RoundPet
             key={`enemy-${roundResult?.round}`}
             pet={enemyPet}
+            intro={introRemaining !== undefined}
             result={roundResult?.rival}
             opponent={roundResult?.mine}
           />
@@ -185,6 +227,7 @@ export default function BattleArena({
           <RoundPet
             key={`own-${roundResult?.round}`}
             pet={myPet}
+            intro={introRemaining !== undefined}
             rear
             result={roundResult?.mine}
             opponent={roundResult?.rival}

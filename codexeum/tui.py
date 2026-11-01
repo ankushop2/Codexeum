@@ -312,6 +312,7 @@ class ArenaApp(App):
                     "waiting": "Waiting for a rival. Share the room code, then both players press READY.",
                     "generating": "Imagining five questions… The timer starts after you press START BATTLE.",
                     "ready": "Questions ready. Press START BATTLE when you’re ready.",
+                    "intro": "Your companions enter the arena! The first question begins after the intro.",
                 }.get(phase, phase)
             )
         history = []

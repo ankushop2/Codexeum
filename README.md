@@ -65,6 +65,8 @@ Built during the DevDay Community Hackathon in London on 1 November 2026. One co
 
 The app started with create-vite. It uses React, FastAPI, the OpenAI SDK and Upstash Redis. Starter pets and the pixel Colosseum are project artwork; imported pets belong to their creators. The pixel Codex mark is a stylised rendition of the Codex logo. Fonts come from Google Fonts. Dependencies retain their own licences.
 
+<<<<<<< HEAD
+
 ## Codexeum terminal arena and skill
 
 The terminal arena recreates the facing-pet field, question panel, narration, countdown, round history and result screen using terminal colors and image-to-character rendering. It connects to the same FastAPI rooms as the website. Local Codex answers automatically through a dedicated ephemeral App Server conversation; A–D submits a human answer, Space toggles autoplay, and Q exits. READY prepares questions; START BATTLE begins the clock. Exiting does not pause a running server match.
@@ -96,3 +98,12 @@ python3 scripts/launch_codexeum.py new --url https://YOUR-DEPLOYMENT
 ```
 
 Terminal dependencies are optional and are not installed in the production Docker image. The server still needs its OpenAI and Redis settings. Tests use a mocked Codex protocol and in-memory game storage; a real match additionally needs a reachable server and signed-in local Codex.
+=======
+
+## Battle intro and challenge help
+
+Start Game opens a three-second intro before the first 30-second question. Imported spritesheets share a compact six-frame idle strip (576×96 PNG) alongside the existing portrait. Both players see their pets enter; starter pets and single images use a slide-in fallback.
+
+Each player category contains one standard and one hard question; the random category remains standard. Challenge questions offer an explicit pet-help button even in your own specialty. Asking for help calls the OpenAI Decisions endpoint (`/v1/decisions`, using `PET_MODEL`, default `gpt-6-luna`) to choose two wrong options to eliminate. The server limits the choice to safe pairs, preserves the correct option, saves the hint for reconnects, and scores correct answers after elimination as assisted answers (2 points). A slow response after the round closes is rejected. Hardness is prompted and tagged, not a guarantee that every player will need help.
+
+> > > > > > > 1890192 (Add sprite battle intro and Decisions-based challenge hints)

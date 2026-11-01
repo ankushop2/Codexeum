@@ -211,6 +211,25 @@ def appearance(value):
         except (ValueError, binascii.Error, struct.error):
             raise GameError("Invalid pet portrait", 400) from None
         clean["image"] = image
+    intro = pet.get("intro")
+    if intro is not None:
+        if (
+            not isinstance(intro, str)
+            or len(intro) > 400000
+            or not intro.startswith("data:image/png;base64,")
+        ):
+            raise GameError("Invalid intro sprites", 400)
+        try:
+            raw = base64.b64decode(intro.split(",", 1)[1], validate=True)
+            if (
+                raw[:8] != b"\x89PNG\r\n\x1a\n"
+                or raw[12:16] != b"IHDR"
+                or struct.unpack(">II", raw[16:24]) != (576, 96)
+            ):
+                raise ValueError()
+        except (ValueError, binascii.Error, struct.error):
+            raise GameError("Invalid intro sprites", 400) from None
+        clean["intro"] = intro
     return {"nickname": nickname.strip(), "pet": clean}
 
 
@@ -289,6 +308,7 @@ def advance(game, now):
     )
     game["round"] += 1
     game["answers"] = {}
+    game["hints"] = {}
     if game["round"] == 5:
         game["phase"] = "finished"
         game["deadline"] = None
@@ -376,9 +396,9 @@ def start_game(store, code, token):
     def action(game, now):
         index = identify(game, token)
         if game["phase"] == "ready":
-            game["phase"] = "playing"
-            begin_round(game, now)
-        elif game["phase"] != "playing":
+            game["phase"] = "intro"
+            game["intro_ends_at"] = now + 3
+        elif game["phase"] not in ("intro", "playing"):
             raise GameError("Questions are not ready", 409)
         return lambda game, now: view(game, now, index)
 
@@ -417,6 +437,9 @@ def record_answer(game, index, answer, source="trainer"):
 
 
 def tick(game, now):
+    if game["phase"] == "intro" and now >= game["intro_ends_at"]:
+        game["phase"] = "playing"
+        begin_round(game, now)
     if game["phase"] == "generating" and now >= game["generation_deadline"]:
         game["phase"] = "waiting"
     if game["phase"] != "playing":
@@ -470,6 +493,8 @@ def view(game, now, index):
         "server_time": now,
         "history": game["history"],
     }
+    if game["phase"] == "intro":
+        result["intro_ends_at"] = game["intro_ends_at"]
     if "bot_difficulty" in game:
         result["bot_difficulty"] = game["bot_difficulty"]
     if game["phase"] == "playing":
@@ -478,7 +503,11 @@ def view(game, now, index):
             {
                 "round": game["round"] + 1,
                 "deadline": game["deadline"],
-                "question": {k: question[k] for k in ("category", "prompt", "options")},
+                "question": {
+                    **{k: question[k] for k in ("category", "prompt", "options")},
+                    "difficulty": question.get("difficulty", "standard"),
+                },
+                "eliminated": game.get("hints", {}).get(str(index), []),
                 "answered": str(index) in game["answers"],
             }
         )
@@ -512,9 +541,56 @@ def answer_game(store, code, token, round_number, answer, source="trainer"):
             raise GameError("Invalid answer", 400)
         if source not in ("trainer", "pet", "team"):
             raise GameError("Invalid answer source", 400)
-        record_answer(game, index, answer, source)
+        if answer in game.get("hints", {}).get(str(index), []):
+            raise GameError("That option was eliminated", 400)
+        effective_source = "team" if game.get("hints", {}).get(str(index)) else source
+        record_answer(game, index, answer, effective_source)
         if len(game["answers"]) == 2:
             advance(game, now)
         return lambda game, now: view(game, now, index)
 
     return update(store, code, action)
+
+
+def eliminate_options(store, code, token, round_number, choose):
+    def context(game, now):
+        index = identify(game, token)
+        if (
+            game["phase"] != "playing"
+            or game["round"] + 1 != round_number
+            or str(index) in game["answers"]
+        ):
+            raise GameError("Round is no longer active", 409)
+        question = game["questions"][game["round"]]
+        if question.get("difficulty") != "hard":
+            raise GameError("This question does not support elimination", 400)
+        return lambda game, now: (
+            index,
+            question,
+            game.get("hints", {}).get(str(index)),
+        )
+
+    index, question, cached = update(store, code, context)
+    if cached is not None:
+        return cached
+    eliminated = choose(question)
+    if (
+        len(eliminated) != 2
+        or len(set(eliminated)) != 2
+        or any(
+            type(i) is not int
+            or i < 0
+            or i >= len(question["options"])
+            or i == question["answer"]
+            for i in eliminated
+        )
+    ):
+        raise GameError("Invalid pet elimination", 502)
+
+    def save(game, now):
+        context(game, now)
+        hints = game.setdefault("hints", {})
+        hints.setdefault(str(index), eliminated)
+        return lambda game, now: hints[str(index)]
+
+    return update(store, code, save)

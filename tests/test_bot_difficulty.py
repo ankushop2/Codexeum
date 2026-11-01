@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 import app
 import game
-from test_game import MemoryStore
+from test_game import MemoryStore, start_playing
 
 
 def questions(first, second, other):
@@ -36,7 +36,7 @@ def test_difficulty_controls_exact_correct_count(difficulty, base, offset):
     assert len(plan) == len(set(plan)) == base + offset
     with patch("game.generate_questions", side_effect=questions):
         game.ready_game(store, code, token)
-    game.start_game(store, code, token)
+    start_playing(store, code, token)
     for _ in range(5):
         raw = json.loads(store.get(code))
         with patch("game.time.time", return_value=raw["deadline"] - 28):

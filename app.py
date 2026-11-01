@@ -13,6 +13,7 @@ from game import (
     StoreUnavailable,
     answer_game,
     create_game,
+    eliminate_options,
     get_game,
     join_game,
     ready_game,
@@ -20,7 +21,7 @@ from game import (
 )
 from pairing import create_pairing, redeem_pairing
 from models import PetDecision
-from question_generator import ConfigurationError, GenerationError
+from question_generator import ConfigurationError, GenerationError, choose_eliminations
 
 load_dotenv()
 PUBLIC = Path(__file__).parent / "public"
@@ -174,6 +175,21 @@ def ask_pet(code: str, request: Request, data: Annotated[Any, Body()] = None):
         or game["answered"]
     ):
         raise GameError("Round is no longer active", 409)
+    if game["question"].get("difficulty") == "hard":
+        eliminated = eliminate_options(
+            store,
+            code.upper(),
+            token(request),
+            data.get("round"),
+            lambda question: choose_eliminations(question, prompt),
+        )
+        return {
+            "round": game["round"],
+            "reply": "I ruled out two options. You choose between the remaining two!",
+            "answer": None,
+            "needs_help": False,
+            "eliminated": eliminated,
+        }
     if not os.getenv("OPENAI_API_KEY"):
         raise ConfigurationError("OPENAI_API_KEY is not configured on the server.")
     question = game["question"]

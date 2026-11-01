@@ -9,13 +9,20 @@ type Session = { code: string; token: string };
 type Game = {
   code: string;
   bot_difficulty?: "easy" | "med" | "hard";
-  phase: "waiting" | "generating" | "ready" | "playing" | "finished";
+  phase: "waiting" | "generating" | "ready" | "intro" | "playing" | "finished";
   players: (Fighter & { ready: boolean; bot: boolean; controller?: string })[];
   you: number;
   server_time: number;
   round?: number;
   deadline?: number;
-  question?: { category: string; prompt: string; options: string[] };
+  intro_ends_at?: number;
+  eliminated?: number[];
+  question?: {
+    category: string;
+    prompt: string;
+    options: string[];
+    difficulty: "standard" | "hard";
+  };
   answered?: boolean;
   history: {
     round: number;
@@ -121,12 +128,17 @@ export default function GameRoom({
 
   function accept(next: Game) {
     clock.current = {
-      deadline: next.deadline || 0,
+      deadline: next.deadline || next.intro_ends_at || 0,
       serverTime: next.server_time,
       receivedAt: performance.now(),
     };
     setRemaining(
-      Math.max(0, Math.ceil((next.deadline || 0) - next.server_time)),
+      Math.max(
+        0,
+        Math.ceil(
+          (next.deadline || next.intro_ends_at || 0) - next.server_time,
+        ),
+      ),
     );
     setGame(next);
   }
@@ -227,10 +239,35 @@ export default function GameRoom({
       width * scale,
       height * scale,
     );
+    let intro: string | undefined;
+    if (columns > 1) {
+      const strip = document.createElement("canvas");
+      strip.width = 576;
+      strip.height = 96;
+      const brush = strip.getContext("2d");
+      if (!brush) throw new Error("Unable to prepare intro sprites.");
+      brush.imageSmoothingEnabled = false;
+      const fit = Math.min(96 / width, 96 / height);
+      for (let frame = 0; frame < 6; frame++) {
+        brush.drawImage(
+          image,
+          (frame % Math.min(columns, 6)) * width,
+          0,
+          width,
+          height,
+          frame * 96 + (96 - width * fit) / 2,
+          (96 - height * fit) / 2,
+          width * fit,
+          height * fit,
+        );
+      }
+      intro = strip.toDataURL("image/png");
+    }
     return {
       name: pet.name,
       color: pet.color,
       image: canvas.toDataURL("image/png"),
+      ...(intro ? { intro } : {}),
     };
   }
 
@@ -338,7 +375,8 @@ export default function GameRoom({
       const result = await api<{
         round: number;
         reply: string;
-        answer: number;
+        answer: number | null;
+        eliminated?: number[];
         needs_help: boolean;
       }>(
         `/${session.code}/pet`,
@@ -349,6 +387,13 @@ export default function GameRoom({
         session.token,
       );
       if (request !== petRequest.current) return;
+      if (result.eliminated) {
+        setGame((current) =>
+          current?.round === round
+            ? { ...current, eliminated: result.eliminated }
+            : current,
+        );
+      }
       setPetReply({
         round: result.round,
         text: result.reply,
@@ -379,6 +424,7 @@ export default function GameRoom({
       game.answered ||
       !game.question ||
       game.players[game.you]?.controller === "codex" ||
+      game.question.difficulty === "hard" ||
       game.question.category === game.players[game.you]?.category ||
       remaining > 15 ||
       remaining === 0
@@ -726,229 +772,263 @@ export default function GameRoom({
               <p>Five rounds · 30 seconds per question.</p>
             </div>
           )}
-          {game && (game.phase === "playing" || game.phase === "finished") && (
-            <>
-              <div className="battle-layout">
-                <BattleArena
-                  roundResult={
-                    lastRound
-                      ? {
-                          round: lastRound.round,
-                          mine: lastRound.answers[game.you],
-                          rival: lastRound.answers[game.you === 0 ? 1 : 0],
-                        }
-                      : undefined
-                  }
-                  mine={mine}
-                  rival={rival}
-                  pet={pet}
-                  nickname={nickname}
-                  message={
-                    roundMessage ||
-                    (game.phase === "finished"
-                      ? "The battle is over. Check your final score!"
-                      : game.answered
-                        ? "Move locked in. Waiting for the rival…"
-                        : remaining === 0
-                          ? "Time’s up! Resolving the round…"
-                          : "Choose an answer to power your next move!")
-                  }
-                />
-                <div className="battle-question-panel">
-                  {game.phase === "playing" && game.question && (
-                    <>
-                      <div className="round-heading">
-                        <span>
-                          ROUND {game.round} / 5 ·{" "}
-                          {game.question.category.toUpperCase()}
-                        </span>
-                        <strong role="timer" aria-label="Seconds remaining">
-                          {remaining}s
-                        </strong>
-                      </div>
-                      <h2 className="question">{game.question.prompt}</h2>
-                      {petBusy && (
-                        <div className="pet-advice" role="status">
-                          {myPetName} is thinking…
-                        </div>
-                      )}
-                      {petReply &&
-                        petReply.round === game.round &&
-                        !game.answered && (
-                          <aside
-                            className="pet-advice"
-                            aria-label="Pet advice"
-                            aria-live="polite"
-                          >
-                            <strong>
-                              {myPetName} SAYS
-                              {petReply.answer !== null
-                                ? `: TRY ${String.fromCharCode(65 + petReply.answer)}`
-                                : ":"}
-                            </strong>
-                            <p>{petReply.text.replace(/\*\*|__|`/g, "")}</p>
-                            <p>
-                              {petReply.needsHelp
-                                ? "I’m not sure!"
-                                : "Trust my pick, or choose another answer."}{" "}
-                              {petReply.answer !== null
-                                ? "A correct answer after pet advice earns 2 points."
-                                : "Choose your answer below."}
-                            </p>
-                          </aside>
-                        )}
-                      <div className="answer-options">
-                        {game.question.options.map((option, index) => (
-                          <button
-                            key={`${game.round}-${index}`}
-                            className={`retro-button secondary ${petReply?.round === game.round && petReply?.answer === index ? "pet-suggestion" : ""}`}
-                            disabled={
-                              busy || game.answered || remaining === 0 || fatal
-                            }
-                            onClick={() =>
-                              void answer(
-                                index,
-                                petReply &&
-                                  petReply.round === game.round &&
-                                  petReply.answer !== null
-                                  ? "team"
-                                  : "trainer",
-                              )
-                            }
-                          >
-                            <span>{String.fromCharCode(65 + index)}.</span>{" "}
-                            {option}
-                            {petReply?.round === game.round &&
-                              petReply?.answer === index && (
-                                <small> ← PET’S PICK</small>
-                              )}
-                          </button>
-                        ))}
-                      </div>
-                      <p role="status">
-                        {game.answered
-                          ? "Answer locked. Waiting for your rival or the timer…"
+          {game &&
+            (game.phase === "intro" ||
+              game.phase === "playing" ||
+              game.phase === "finished") && (
+              <>
+                <div className="battle-layout">
+                  <BattleArena
+                    introRemaining={
+                      game.phase === "intro" ? remaining : undefined
+                    }
+                    roundResult={
+                      lastRound
+                        ? {
+                            round: lastRound.round,
+                            mine: lastRound.answers[game.you],
+                            rival: lastRound.answers[game.you === 0 ? 1 : 0],
+                          }
+                        : undefined
+                    }
+                    mine={mine}
+                    rival={rival}
+                    pet={pet}
+                    nickname={nickname}
+                    message={
+                      roundMessage ||
+                      (game.phase === "finished"
+                        ? "The battle is over. Check your final score!"
+                        : game.answered
+                          ? "Move locked in. Waiting for the rival…"
                           : remaining === 0
-                            ? "Time’s up. Resolving the round…"
-                            : busy
-                              ? "Sending your answer…"
-                              : "Choose your answer before time runs out."}
-                      </p>
-                      <div
-                        className={`pet-prompt ${game.question.category !== mine?.category && !game.answered && remaining > 0 ? "pet-help-panel" : ""}`}
-                      >
-                        {game.question.category !== mine?.category &&
-                          !game.answered &&
-                          remaining > 0 && (
-                            <>
-                              <label htmlFor="pet-prompt">
-                                ✦ STUCK? ASK {myPetName.toUpperCase()}!
-                              </label>
-                              <p>
-                                Your learning buddy is ready to help. Ask for a
-                                clue or a suggestion.
-                              </p>
-                              <textarea
-                                id="pet-prompt"
-                                value={petPrompt}
-                                maxLength={500}
-                                placeholder={`“Give me a clue, ${myPetName}!”`}
-                                onChange={(event) =>
-                                  setPetPrompt(event.target.value)
-                                }
-                                disabled={
-                                  game.answered || remaining === 0 || fatal
-                                }
-                              />
-                              <button
-                                className="retro-button primary"
-                                disabled={
-                                  petBusy ||
-                                  game.answered ||
-                                  remaining === 0 ||
-                                  fatal
-                                }
-                                onClick={() =>
-                                  void askPet(
-                                    petPrompt.trim() ||
-                                      "Help me understand this question and suggest an answer.",
-                                  )
-                                }
-                              >
-                                {petBusy
-                                  ? `${myPetName.toUpperCase()} IS THINKING…`
-                                  : `GET ${myPetName.toUpperCase()}’S HELP →`}
-                              </button>
-                              <p>
-                                A correct answer with pet advice earns 2 points.
-                                You choose the final answer.
-                              </p>
-                            </>
-                          )}
+                            ? "Time’s up! Resolving the round…"
+                            : "Choose an answer to power your next move!")
+                    }
+                  />
+                  <div className="battle-question-panel">
+                    {game.phase === "intro" && (
+                      <div className="match-result">
+                        <h2>GET READY!</h2>
+                        <p>Your companions are entering the arena…</p>
+                        <p>The first question starts after the intro.</p>
                       </div>
-                      <p className="scoring-note">
-                        Correct: 5 points on your own, 2 with your pet’s help.
-                      </p>
-                    </>
-                  )}
-                  {game.phase === "finished" && (
-                    <div className="match-result">
-                      <span>✦</span>
-                      <h2>
-                        {game.winner === null
-                          ? "IT’S A DRAW!"
-                          : game.winner === game.you
-                            ? "YOU WIN!"
-                            : "RIVAL WINS!"}
-                      </h2>
-                      <p>
-                        Five rounds complete. Final score: {mine?.score} –{" "}
-                        {rival?.score}.
-                      </p>
-                      <button className="retro-button primary" onClick={leave}>
-                        PLAY AGAIN →
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-              {game.history.length > 0 && (
-                <details className="round-history">
-                  <summary>VIEW ROUND-BY-ROUND RESULTS</summary>
-                  {game.history.map((round) => (
-                    <div key={round.round}>
-                      <span>
-                        {round.round}. {round.category}
-                        {round.correct_answer && (
-                          <small> · Answer: {round.correct_answer}</small>
+                    )}
+                    {game.phase === "playing" && game.question && (
+                      <>
+                        <div className="round-heading">
+                          <span>
+                            ROUND {game.round} / 5 ·{" "}
+                            {game.question.category.toUpperCase()}
+                          </span>
+                          <strong role="timer" aria-label="Seconds remaining">
+                            {remaining}s
+                          </strong>
+                        </div>
+                        {game.question.difficulty === "hard" && (
+                          <p className="challenge-label">
+                            ✦ CHALLENGE QUESTION · Ask your pet to eliminate two
+                            options
+                          </p>
                         )}
-                      </span>
-                      <span>
-                        YOU:{" "}
-                        {round.answers[game.you] === true
-                          ? "HIT"
-                          : round.answers[game.you] === false
-                            ? "MISS"
-                            : "TIMEOUT"}
-                        {round.answers[game.you] === true &&
-                          ` · +${round.points?.[game.you] ?? (round.category === mine?.category ? 2 : 5)} PTS · ${(round.sources?.[game.you] || "trainer").toUpperCase()}`}
-                      </span>
-                      <span>
-                        RIVAL:{" "}
-                        {round.answers[game.you === 0 ? 1 : 0] === true
-                          ? "HIT"
-                          : round.answers[game.you === 0 ? 1 : 0] === false
-                            ? "MISS"
-                            : "TIMEOUT"}
-                        {round.answers[game.you === 0 ? 1 : 0] === true &&
-                          ` · +${round.points?.[game.you === 0 ? 1 : 0] ?? (round.category === rival?.category ? 2 : 5)} PTS · ${(round.sources?.[game.you === 0 ? 1 : 0] || "trainer").toUpperCase()}`}
-                      </span>
-                    </div>
-                  ))}
-                </details>
-              )}
-            </>
-          )}
+                        <h2 className="question">{game.question.prompt}</h2>
+                        {petBusy && (
+                          <div className="pet-advice" role="status">
+                            {myPetName} is thinking…
+                          </div>
+                        )}
+                        {petReply &&
+                          petReply.round === game.round &&
+                          !game.answered && (
+                            <aside
+                              className="pet-advice"
+                              aria-label="Pet advice"
+                              aria-live="polite"
+                            >
+                              <strong>
+                                {myPetName} SAYS
+                                {petReply.answer !== null
+                                  ? `: TRY ${String.fromCharCode(65 + petReply.answer)}`
+                                  : ":"}
+                              </strong>
+                              <p>{petReply.text.replace(/\*\*|__|`/g, "")}</p>
+                              <p>
+                                {(game.eliminated || []).length > 0
+                                  ? "Two wrong options eliminated. A correct answer with help earns 2 points."
+                                  : petReply.needsHelp
+                                    ? "I’m not sure!"
+                                    : "Trust my pick, or choose another answer."}{" "}
+                                {petReply.answer !== null
+                                  ? "A correct answer after pet advice earns 2 points."
+                                  : "Choose your answer below."}
+                              </p>
+                            </aside>
+                          )}
+                        <div className="answer-options">
+                          {game.question.options.map((option, index) => (
+                            <button
+                              key={`${game.round}-${index}`}
+                              className={`retro-button secondary ${(game.eliminated || []).includes(index) ? "eliminated-option" : ""} ${petReply?.round === game.round && petReply?.answer === index ? "pet-suggestion" : ""}`}
+                              disabled={
+                                busy ||
+                                game.answered ||
+                                remaining === 0 ||
+                                fatal ||
+                                (game.eliminated || []).includes(index)
+                              }
+                              onClick={() =>
+                                void answer(
+                                  index,
+                                  petReply &&
+                                    petReply.round === game.round &&
+                                    (petReply.answer !== null ||
+                                      (game.eliminated || []).length > 0)
+                                    ? "team"
+                                    : "trainer",
+                                )
+                              }
+                            >
+                              <span>{String.fromCharCode(65 + index)}.</span>{" "}
+                              {option}
+                              {(game.eliminated || []).includes(index) && (
+                                <small> · ELIMINATED</small>
+                              )}
+                              {petReply?.round === game.round &&
+                                petReply?.answer === index && (
+                                  <small> ← PET’S PICK</small>
+                                )}
+                            </button>
+                          ))}
+                        </div>
+                        <p role="status">
+                          {game.answered
+                            ? "Answer locked. Waiting for your rival or the timer…"
+                            : remaining === 0
+                              ? "Time’s up. Resolving the round…"
+                              : busy
+                                ? "Sending your answer…"
+                                : "Choose your answer before time runs out."}
+                        </p>
+                        <div
+                          className={`pet-prompt ${(game.question.category !== mine?.category || game.question.difficulty === "hard") && !game.answered && remaining > 0 ? "pet-help-panel" : ""}`}
+                        >
+                          {(game.question.category !== mine?.category ||
+                            game.question.difficulty === "hard") &&
+                            !game.answered &&
+                            remaining > 0 && (
+                              <>
+                                <label htmlFor="pet-prompt">
+                                  ✦ STUCK? ASK {myPetName.toUpperCase()}!
+                                </label>
+                                <p>
+                                  {game.question.difficulty === "hard"
+                                    ? "Ask your pet for a 50/50 hint: two wrong options will be eliminated."
+                                    : "Your learning buddy is ready to help. Ask for a clue or a suggestion."}
+                                </p>
+                                <textarea
+                                  id="pet-prompt"
+                                  value={petPrompt}
+                                  maxLength={500}
+                                  placeholder={`“Give me a clue, ${myPetName}!”`}
+                                  onChange={(event) =>
+                                    setPetPrompt(event.target.value)
+                                  }
+                                  disabled={
+                                    game.answered || remaining === 0 || fatal
+                                  }
+                                />
+                                <button
+                                  className="retro-button primary"
+                                  disabled={
+                                    petBusy ||
+                                    game.answered ||
+                                    remaining === 0 ||
+                                    fatal
+                                  }
+                                  onClick={() =>
+                                    void askPet(
+                                      petPrompt.trim() ||
+                                        "Help me understand this question and suggest an answer.",
+                                    )
+                                  }
+                                >
+                                  {petBusy
+                                    ? `${myPetName.toUpperCase()} IS THINKING…`
+                                    : `GET ${myPetName.toUpperCase()}’S HELP →`}
+                                </button>
+                                <p>
+                                  A correct answer with pet advice earns 2
+                                  points. You choose the final answer.
+                                </p>
+                              </>
+                            )}
+                        </div>
+                        <p className="scoring-note">
+                          Correct: 5 points on your own, 2 with your pet’s help.
+                        </p>
+                      </>
+                    )}
+                    {game.phase === "finished" && (
+                      <div className="match-result">
+                        <span>✦</span>
+                        <h2>
+                          {game.winner === null
+                            ? "IT’S A DRAW!"
+                            : game.winner === game.you
+                              ? "YOU WIN!"
+                              : "RIVAL WINS!"}
+                        </h2>
+                        <p>
+                          Five rounds complete. Final score: {mine?.score} –{" "}
+                          {rival?.score}.
+                        </p>
+                        <button
+                          className="retro-button primary"
+                          onClick={leave}
+                        >
+                          PLAY AGAIN →
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {game.history.length > 0 && (
+                  <details className="round-history">
+                    <summary>VIEW ROUND-BY-ROUND RESULTS</summary>
+                    {game.history.map((round) => (
+                      <div key={round.round}>
+                        <span>
+                          {round.round}. {round.category}
+                          {round.correct_answer && (
+                            <small> · Answer: {round.correct_answer}</small>
+                          )}
+                        </span>
+                        <span>
+                          YOU:{" "}
+                          {round.answers[game.you] === true
+                            ? "HIT"
+                            : round.answers[game.you] === false
+                              ? "MISS"
+                              : "TIMEOUT"}
+                          {round.answers[game.you] === true &&
+                            ` · +${round.points?.[game.you] ?? (round.category === mine?.category ? 2 : 5)} PTS · ${(round.sources?.[game.you] || "trainer").toUpperCase()}`}
+                        </span>
+                        <span>
+                          RIVAL:{" "}
+                          {round.answers[game.you === 0 ? 1 : 0] === true
+                            ? "HIT"
+                            : round.answers[game.you === 0 ? 1 : 0] === false
+                              ? "MISS"
+                              : "TIMEOUT"}
+                          {round.answers[game.you === 0 ? 1 : 0] === true &&
+                            ` · +${round.points?.[game.you === 0 ? 1 : 0] ?? (round.category === rival?.category ? 2 : 5)} PTS · ${(round.sources?.[game.you === 0 ? 1 : 0] || "trainer").toUpperCase()}`}
+                        </span>
+                      </div>
+                    ))}
+                  </details>
+                )}
+              </>
+            )}
           {game?.phase !== "finished" && (
             <button className="text-button" disabled={busy} onClick={leave}>
               ← Leave room locally

@@ -15,6 +15,7 @@ class Option(BaseModel):
 
 class GeneratedQuestion(BaseModel):
     category: Category
+    difficulty: Literal["standard", "hard"]
     question: str
     options: list[Option]
     correct_answer: OptionId

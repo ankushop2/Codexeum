@@ -2001,3 +2001,141 @@ footer {
     font-size: 8px;
   }
 }
+.battle-intro {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+}
+.intro-shutter {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  background: #293b30;
+  z-index: 2;
+  animation: shutter-open 700ms ease-out forwards;
+}
+.intro-shutter.top {
+  top: 0;
+  --shutter-y: -100%;
+}
+.intro-shutter.bottom {
+  bottom: 0;
+  --shutter-y: 100%;
+}
+.intro-title {
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  translate: -50% -50%;
+  width: 95%;
+  padding: 15px 8px;
+  text-align: center;
+  background: #fff7cd;
+  border-block: 4px solid #293b30;
+  box-shadow: 0 5px #293b3040;
+  animation: intro-title-enter 3s both;
+}
+.intro-title strong {
+  display: block;
+  font:
+    12px/1.8 "Press Start 2P",
+    monospace;
+  overflow-wrap: anywhere;
+}
+.intro-title strong span {
+  color: #a64252;
+  font-size: 22px;
+  margin-inline: 8px;
+}
+.intro-title small {
+  display: block;
+  font-size: 9px;
+}
+.battle-entering .own-position {
+  animation: pet-enter-own 1s both;
+}
+.battle-entering .enemy-position {
+  animation: pet-enter-enemy 1s both;
+}
+.intro-sprites {
+  display: block;
+  width: 135px;
+  height: 135px;
+  background-size: 600% 100%;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  animation: intro-sprite-play 900ms steps(5) infinite;
+}
+.challenge-label {
+  padding: 12px;
+  border: 2px solid #806622;
+  background: #fff2b9;
+  font-size: 11px;
+}
+.answer-options .eliminated-option {
+  text-decoration: line-through;
+  opacity: 0.4;
+  border-style: dashed;
+}
+@keyframes shutter-open {
+  to {
+    translate: 0 var(--shutter-y);
+  }
+}
+@keyframes intro-title-enter {
+  0%,
+  15% {
+    opacity: 0;
+    scale: 0.7;
+  }
+  30%,
+  85% {
+    opacity: 1;
+    scale: 1;
+  }
+  100% {
+    opacity: 0;
+    scale: 1.1;
+  }
+}
+@keyframes pet-enter-own {
+  from {
+    translate: -250px 0;
+    opacity: 0;
+  }
+  to {
+    translate: 0 0;
+    opacity: 1;
+  }
+}
+@keyframes pet-enter-enemy {
+  from {
+    translate: 250px 0;
+    opacity: 0;
+  }
+  to {
+    translate: 0 0;
+    opacity: 1;
+  }
+}
+@keyframes intro-sprite-play {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 100% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .intro-shutter {
+    display: none;
+  }
+  .battle-entering .own-position,
+  .battle-entering .enemy-position,
+  .intro-title,
+  .intro-sprites {
+    animation: none;
+  }
+}
